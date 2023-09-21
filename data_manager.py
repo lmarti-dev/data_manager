@@ -1,6 +1,5 @@
 import os
 from datetime import datetime
-import fauvqe.json
 import io
 import numpy as np
 import __main__
