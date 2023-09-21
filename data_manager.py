@@ -6,6 +6,8 @@ import __main__
 import logging
 import sys
 import matplotlib.pyplot as plt
+from json_extender import ExtendedJSONEncoder
+import json
 
 
 def random_word_from_list(fpath):
@@ -30,6 +32,8 @@ def get_figure_dict(fig: plt.Figure) -> dict:
         y_label = ax.yaxis.label.get_text()
         fig_data[ax_k]["x_label"] = x_label
         fig_data[ax_k]["y_label"] = y_label
+    fig_data["creator"] = __main__.__file__
+    return fig_data
 
 
 def get_time_of_day():
@@ -82,6 +86,7 @@ class ExperimentDataManager:
         else:
             self.experiment_name = self.ensure_experiment_name(experiment_name)
         self.today = datetime.today().strftime("%Y_%m_%d")
+
         self.new_run()
         print("Run saving in folder: {}".format(self.run_folder))
         if redirect_print_output:
@@ -201,7 +206,9 @@ class ExperimentDataManager:
             filename, extension=".json", subfolder=category, add_timestamp=add_timestamp
         )
         print("saving object called {}".format(os.path.basename(experiment_fpath)))
-        jobj_str = fauvqe.json.dumps(jobj, indent=4, ensure_ascii=False)
+        jobj_str = json.dumps(
+            jobj, indent=4, ensure_ascii=False, cls=ExtendedJSONEncoder
+        )
         fstream = io.open(experiment_fpath, "w+")
         fstream.write(jobj_str)
         print("wrote json to {}".format(experiment_fpath))
