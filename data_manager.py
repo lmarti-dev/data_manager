@@ -10,6 +10,11 @@ from json_extender import ExtendedJSONEncoder
 import json
 
 
+DATA_DIR = "data"
+FIG_DIR = "figures"
+LOGGING_DIR = "logging"
+
+
 def random_word_from_list(fpath):
     lines = io.open(fpath, "r", encoding="utf8").read().splitlines()
     return np.random.choice(lines)
@@ -88,7 +93,7 @@ class ExperimentDataManager:
         self.today = datetime.today().strftime("%Y_%m_%d")
 
         self.new_run()
-        print("Run saving in folder: {}".format(self.run_folder))
+        print("Run saving in folder: {}".format(self.current_run_dir))
         if redirect_print_output:
             self.redirect_print()
 
@@ -100,13 +105,13 @@ class ExperimentDataManager:
         self.save_dict_to_experiment(
             jobj=manifest,
             filename="manifest",
-            category="logging",
+            category=LOGGING_DIR,
         )
         print("saved manifest: {}".format(manifest))
 
     def redirect_print(self):
         print_output_fpath = self.get_experiment_fpath(
-            filename="print_output", extension=".log", subfolder="logging"
+            filename="print_output", extension=".log", subfolder=LOGGING_DIR
         )
         targets = logging.StreamHandler(sys.stdout), logging.FileHandler(
             print_output_fpath
@@ -125,7 +130,19 @@ class ExperimentDataManager:
         print("new run: starting run {}".format(self.run_number))
 
     @property
-    def run_folder(self):
+    def current_data_dir(self):
+        return os.path.join(self.experiment_dirname, DATA_DIR)
+
+    @property
+    def current_logging_dir(self):
+        return os.path.join(self.experiment_dirname, LOGGING_DIR)
+
+    @property
+    def current_fig_dir(self):
+        return os.path.join(self.experiment_dirname, FIG_DIR)
+
+    @property
+    def current_run_dir(self):
         return "run_" + str(self.run_number)
 
     @property
@@ -135,7 +152,7 @@ class ExperimentDataManager:
     @property
     def experiment_dirname(self):
         return os.path.join(
-            self.data_folder, self.today, self.experiment_name, self.run_folder
+            self.data_folder, self.today, self.experiment_name, self.current_run_dir
         )
 
     @property
@@ -199,7 +216,7 @@ class ExperimentDataManager:
         self,
         jobj: dict,
         filename: str = None,
-        category: str = "data",
+        category: str = DATA_DIR,
         add_timestamp: bool = True,
     ):
         experiment_fpath = self.get_experiment_fpath(
@@ -217,7 +234,7 @@ class ExperimentDataManager:
     def dump_some_variables(self, **kwargs):
         print("dumping variables {}".format(kwargs.keys()))
         kwargs.update({"now": self.now})
-        self.save_dict_to_experiment(kwargs, category="logging", filename="var_dump")
+        self.save_dict_to_experiment(kwargs, category=LOGGING_DIR, filename="var_dump")
 
     def random_experiment_name(self):
         return random_word_from_list(
@@ -229,7 +246,7 @@ class ExperimentDataManager:
             os.path.join(
                 self.home,
                 "wordlists",
-                "run_default_wordlist.txt",
+                "run_default_wordlist_3.txt",
             )
         )
 
@@ -241,12 +258,12 @@ class ExperimentDataManager:
         figure_fpath = self.get_experiment_fpath(
             filename,
             extension=".pdf",
-            subfolder="figures",
+            subfolder=FIG_DIR,
             add_timestamp=add_timestamp,
         )
-        fig.savefig(figure_fpath, dpi="figure", format="pdf")
+        fig.savefig(figure_fpath, format="pdf")
         print("saved figure to {}".format(figure_fpath))
         fig_data = get_figure_dict(fig=fig)
         self.save_dict_to_experiment(
-            filename=filename + "_data", jobj=fig_data, category="figure"
+            filename=filename + "_data", jobj=fig_data, category=FIG_DIR
         )

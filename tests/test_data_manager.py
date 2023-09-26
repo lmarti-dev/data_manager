@@ -1,5 +1,5 @@
 from data_manager import ExperimentDataManager
-from json_extender import ExtendedJSONEncoder, ExtendedJSONDecoder
+from json_extender import ExtendedJSONDecoder
 
 import json
 import os
@@ -9,14 +9,18 @@ import openfermion as of
 import matplotlib.pyplot as plt
 import io
 
+# declare manager class
 edm = ExperimentDataManager(
-    data_folder="test_data_folder", notes="this is the test experiment"
+    data_folder=os.path.dirname(__file__) + "/test_data_folder",
+    notes="this is the test experiment",
 )
 
+# dump some variables quickly
 vals = [3, 346, 1.435784]
 
 edm.dump_some_variables(vals=vals)
 
+# create important data
 numeric_data = np.random.rand(30, 30) + 1j * np.random.rand(30, 30)
 word_data = ["word", "chocolate", "bike"]
 
@@ -31,6 +35,7 @@ mixed_list = [
     "hello",
 ]
 
+# save the data
 edm.save_dict_to_experiment(
     jobj={
         "numeric_data": numeric_data,
@@ -41,16 +46,24 @@ edm.save_dict_to_experiment(
     }
 )
 
-fig, ax = plt.subplots()
 
-ax.plot(numeric_data.real, numeric_data.imag, "x")
-ax.set_xlabel("real")
-ax.set_ylabel("imag")
+# save a plot
+fig, ax = plt.subplots(nrows=2)
+
+ax[0].plot(numeric_data.real**0.1, numeric_data.imag**0.1, "x")
+ax[1].plot(numeric_data.real**2, numeric_data.imag**2, "o")
+ax[0].set_xlabel("real")
+ax[1].set_ylabel("imag")
 
 edm.save_figure(fig=fig)
 
-dirname = edm.experiment_dirname
-files = os.listdir(dirname)
+
+# load everything back again
+# data folder == general folder where all data is
+dirname = edm.current_data_dir
+files = os.listdir(
+    dirname,
+)
 
 filename = files[-1]
 
@@ -59,3 +72,5 @@ s = io.open(os.path.join(dirname, filename), "r", encoding="utf8").read()
 dct = json.loads(s=s, cls=ExtendedJSONDecoder)
 
 print(dct)
+
+plt.show()
