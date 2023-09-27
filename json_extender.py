@@ -3,6 +3,7 @@ import cirq
 import numpy as np
 import openfermion as of
 from typing import Any
+import sympy
 
 CIRQ_TYPES = (cirq.Qid, cirq.Gate, cirq.Operation, cirq.Moment, cirq.AbstractCircuit)
 
@@ -33,9 +34,8 @@ class ExtendedJSONEncoder(JSONEncoder):
                 ARGS_FLAG: cirq.to_json(obj, indent=4),
             }
 
-        elif isinstance(obj, OF_TYPES):
+        elif isinstance(obj, (OF_TYPES, sympy.Symbol)):
             return {TYPE_FLAG: obj.__class__.__name__, ARGS_FLAG: str(obj)}
-
         return super().default(obj)
 
 
@@ -58,20 +58,21 @@ class ExtendedJSONDecoder(JSONDecoder):
 
 def get_type(s: str) -> Any:
     try:
+        # make it fail fast if needed
+        assert getattr(__builtins__, s).__name__ == "complex"
+        return complex
+    except:
+        pass
+    try:
+        # hate this
         assert getattr(np, s).__name__ == "ndarray"
         return np.array
     except:
         pass
-    try:
-        return getattr(cirq, s)
-    except:
-        pass
-    try:
-        return getattr(of, s)
-    except:
-        pass
-    try:
-        return complex
-    except:
-        pass
+    # the attr is the class with desired constructor
+    for cls in (cirq, of, sympy):
+        try:
+            return getattr(cls, s)
+        except:
+            pass
     raise ValueError("{} is an unknown type".format(s))
