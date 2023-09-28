@@ -6,13 +6,23 @@ import __main__
 import logging
 import sys
 import matplotlib.pyplot as plt
-from json_extender import ExtendedJSONEncoder
+from json_extender import ExtendedJSONEncoder, ExtendedJSONDecoder
 import json
 
 
 DATA_DIR = "data"
 FIG_DIR = "figures"
 LOGGING_DIR = "logging"
+RUN_DIR = "run"
+RESTORE_FILENAME = "edm_data"
+
+
+def home() -> str:
+    return os.path.dirname(__file__)
+
+
+def wordlists_dir() -> str:
+    return os.path.join(home(), "wordlists")
 
 
 def random_word_from_list(fpath):
@@ -41,7 +51,7 @@ def get_figure_dict(fig: plt.Figure) -> dict:
     return fig_data
 
 
-def get_time_of_day():
+def get_time_of_day() -> str:
     if datetime.now().hour <= 8:
         return "early_morning"
     elif datetime.now().hour <= 10:
@@ -60,54 +70,85 @@ def get_time_of_day():
         return "cursed_midnight"
 
 
+def name_from_list(list_name: str) -> str:
+    return random_word_from_list(os.path.join(wordlists_dir(), list_name))
+
+
+def animal_name() -> str:
+    return random_word_from_list(
+        os.path.join(
+            home(),
+            "wordlists",
+            "animals.txt",
+        )
+    )
+
+
+def name_builder(wordlists: list, *args):
+    words = [name_from_list(wordlist) for wordlist in wordlists]
+    return "_".join(words + list(args))
+
+
+def dirname_has_substring(dirname: str, substr: str, return_last: bool = True):
+    tentative_items = os.listdir(os.path.join(dirname))
+    items = [item for item in tentative_items if substr in item]
+    if items:
+        if return_last:
+            return items[-1]
+        else:
+            return items
+    else:
+        raise ValueError(f"{substr} not in {dirname}")
+
+
 class ExperimentDataManager:
     def __init__(
         self,
         data_folder: os.PathLike,
+        *,
         experiment_name: str = None,
         file_default_name: str = None,
         overwrite_experiment: bool = False,
         redirect_print_output: bool = True,
         notes: str = None,
         zero_padding_len: int = 5,
+        experiment_date: str = None,
+        start_new_run: bool = True,
     ) -> None:
+        # get everything to save for later
+        self.overwrite_experiment = overwrite_experiment
+        self.redirect_print_output = redirect_print_output
+        self.notes = notes
         self.data_folder = data_folder
-        self.run_number = None
         self.zero_padding_len = zero_padding_len
+
         if file_default_name is None:
-            self.file_default_name = self.random_filename()
+            self.file_default_name = name_builder(["foods.txt"])
         else:
             self.file_default_name = file_default_name
+        self.run_number = None
+
         if experiment_name is None:
-            experiment_name = (
-                self.random_experiment_name()
-                + "_"
-                + get_time_of_day()
-                + "_"
-                + self.clock
+            experiment_name = name_builder(
+                ["scientists.txt", "ge_villes.txt"], self.clock
             )
-        if overwrite_experiment:
+
+        if self.overwrite_experiment:
             self.experiment_name = experiment_name
         else:
             self.experiment_name = self.ensure_experiment_name(experiment_name)
-        self.today = datetime.today().strftime("%Y_%m_%d")
-
-        self.new_run()
-        print("Run saving in folder: {}".format(self.current_run_dir))
-        if redirect_print_output:
-            self.redirect_print()
-
-        print("created experiment {}. Today is {}".format(experiment_name, self.today))
-        manifest = {"main_file": __main__.__file__, "timestamp": self.now}
-        # add notes to manifest
-        if notes is not None:
-            manifest["notes"] = notes
-        self.save_dict_to_experiment(
-            jobj=manifest,
-            filename="manifest",
-            category=LOGGING_DIR,
+        if experiment_date is None:
+            self.experiment_date = datetime.today().strftime("%Y_%m_%d")
+        else:
+            self.experiment_date = experiment_date
+        print(
+            "Experiment name: {} created {}. Clock reads {}".format(
+                self.experiment_name, self.experiment_date, self.now
+            )
         )
-        print("saved manifest: {}".format(manifest))
+
+        if start_new_run:
+            self.new_run(notes=notes)
 
     def redirect_print(self):
         print_output_fpath = self.get_experiment_fpath(
@@ -119,40 +160,54 @@ class ExperimentDataManager:
         logging.basicConfig(format="%(message)s", level=logging.INFO, handlers=targets)
         __main__.print = logging.info
         print(
-            "redirect print of {} to {}".format(__main__.__file__, print_output_fpath)
+            "Redirect print of {} to {}".format(__main__.__file__, print_output_fpath)
         )
 
-    def new_run(self):
+    def new_run(self, notes: str = None):
         if self.run_number is None:
             self.run_number = 0
         else:
             self.run_number += 1
-        print("new run: starting run {}".format(self.run_number))
+        print("New run: starting run {}".format(self.run_number))
+        print("Run saving in folder: {}".format(self.current_run_dir))
+
+        manifest = {"main_file": __main__.__file__, "timestamp": self.now}
+        # add notes to manifest
+        if notes is not None:
+            manifest["notes"] = notes
+        self.save_dict_to_experiment(
+            jobj=manifest,
+            filename="manifest",
+            category=LOGGING_DIR,
+        )
+        print("Saved manifest: {}".format(manifest))
+
+        self.store()
 
     @property
-    def current_data_dir(self):
-        return os.path.join(self.experiment_dirname, DATA_DIR)
+    def current_data_dir(self) -> str:
+        return os.path.join(self.current_saving_dirname, DATA_DIR)
 
     @property
-    def current_logging_dir(self):
-        return os.path.join(self.experiment_dirname, LOGGING_DIR)
+    def current_logging_dir(self) -> str:
+        return os.path.join(self.current_saving_dirname, LOGGING_DIR)
 
     @property
-    def current_fig_dir(self):
-        return os.path.join(self.experiment_dirname, FIG_DIR)
+    def current_fig_dir(self) -> str:
+        return os.path.join(self.current_saving_dirname, FIG_DIR)
 
     @property
-    def current_run_dir(self):
-        return "run_" + str(self.run_number)
+    def current_run_dir(self) -> str:
+        return RUN_DIR + "_" + f"{self.run_number:0{self.zero_padding_len}}"
 
     @property
-    def home(self):
-        return os.path.dirname(__file__)
-
-    @property
-    def experiment_dirname(self):
+    def current_saving_dirname(self):
+        # this is where you save current stuff
         return os.path.join(
-            self.data_folder, self.today, self.experiment_name, self.current_run_dir
+            self.data_folder,
+            self.experiment_date,
+            self.experiment_name,
+            self.current_run_dir,
         )
 
     @property
@@ -161,7 +216,7 @@ class ExperimentDataManager:
 
     @property
     def clock(self):
-        return datetime.today().strftime("%H%M")
+        return datetime.today().strftime("%Hh%M")
 
     def ensure_experiment_name(self, experiment_name):
         folders = os.listdir(self.data_folder)
@@ -170,6 +225,50 @@ class ExperimentDataManager:
             experiment_name += "_" + f"{n_experiments:0{self.zero_padding_len}}"
         return experiment_name
 
+    def store(self):
+        # save self data for later use
+        jobj = {
+            "init": {
+                "data_folder": self.data_folder,
+                "experiment_name": self.experiment_name,
+                "file_default_name": self.file_default_name,
+                "overwrite_experiment": self.overwrite_experiment,
+                "redirect_print_output": self.redirect_print_output,
+                "zero_padding_len": self.zero_padding_len,
+                "experiment_date": self.experiment_date,
+            },
+            "run_number": self.run_number,
+            "current_run_dir": self.current_run_dir,
+        }
+        self.save_dict_to_experiment(
+            jobj=jobj, filename=RESTORE_FILENAME, category=LOGGING_DIR
+        )
+
+    @classmethod
+    def restore(cls, experiment_dirname: str):
+        # This allows you to pick up where you stopped,
+        # and eventually also save figures in the corresponding folder
+        # so that your data and figures are in the same place
+
+        # check there is a edm_save file
+        last_run = dirname_has_substring(experiment_dirname, RUN_DIR)
+        current_run_dir = os.path.join(experiment_dirname, last_run)
+        last_log = dirname_has_substring(current_run_dir, LOGGING_DIR)
+        current_log_dir = os.path.join(current_run_dir, last_log)
+        restore_fn = dirname_has_substring(current_log_dir, RESTORE_FILENAME)
+
+        # restore it
+        restore_file = io.open(
+            os.path.join(current_log_dir, restore_fn), "r", encoding="utf8"
+        ).read()
+
+        # load jobj and restore without new run
+        jobj = json.loads(restore_file, cls=ExtendedJSONDecoder)
+        edm = ExperimentDataManager(**jobj["init"], start_new_run=False)
+        edm.run_number = jobj["run_number"]
+        print("Experiment restored: {}".format(edm.current_saving_dirname))
+        return edm
+
     def get_experiment_fpath(
         self,
         filename: os.PathLike = None,
@@ -177,11 +276,12 @@ class ExperimentDataManager:
         subfolder: os.PathLike = None,
         add_timestamp: bool = True,
     ):
+        # get automatic full path to save file
         # check for subfolder
         if subfolder:
-            dirname = os.path.join(self.experiment_dirname, subfolder)
+            dirname = os.path.join(self.current_saving_dirname, subfolder)
         else:
-            dirname = self.experiment_dirname
+            dirname = self.current_saving_dirname
 
         # create required path
         if not os.path.exists(dirname):
@@ -197,7 +297,9 @@ class ExperimentDataManager:
                     self.file_default_name + "_" + f"{n_files:0{self.zero_padding_len}}"
                 )
             else:
-                filename = self.file_default_name + "_0"
+                filename = (
+                    self.file_default_name + "_" + f"{0:0{self.zero_padding_len}}"
+                )
 
         # remove duplicate extension if necessary
         else:
@@ -236,25 +338,11 @@ class ExperimentDataManager:
         kwargs.update({"now": self.now})
         self.save_dict_to_experiment(kwargs, category=LOGGING_DIR, filename="var_dump")
 
-    def random_experiment_name(self):
-        return random_word_from_list(
-            os.path.join(self.home, "wordlists", "experiment_wordlist.txt")
-        )
-
-    def random_filename(self):
-        return random_word_from_list(
-            os.path.join(
-                self.home,
-                "wordlists",
-                "run_default_wordlist_3.txt",
-            )
-        )
-
     def save_figure(
         self, fig: plt.Figure, filename: str = None, add_timestamp: bool = True
     ):
         if filename is None:
-            filename = self.random_filename()
+            filename = name_builder(["foods.txt"])
         figure_fpath = self.get_experiment_fpath(
             filename,
             extension=".pdf",
