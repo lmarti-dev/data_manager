@@ -15,6 +15,7 @@ FIG_DIR = "figures"
 LOGGING_DIR = "logging"
 RUN_DIR = "run"
 RESTORE_FILENAME = "edm_data"
+DATE_FORMAT = "%Y_%m_%d"
 
 
 def home() -> str:
@@ -74,19 +75,33 @@ def name_from_list(list_name: str) -> str:
     return random_word_from_list(os.path.join(wordlists_dir(), list_name))
 
 
-def animal_name() -> str:
-    return random_word_from_list(
-        os.path.join(
-            home(),
-            "wordlists",
-            "animals.txt",
-        )
-    )
-
-
 def name_builder(wordlists: list, *args):
     words = [name_from_list(wordlist) for wordlist in wordlists]
     return "_".join(words + list(args))
+
+
+def is_date(date):
+    try:
+        datetime.strptime(date, DATE_FORMAT)
+        return True
+    except ValueError:
+        return False
+
+
+def print_experiments_without_data(data_folder: str):
+    days = os.listdir(data_folder)
+    for day in days:
+        if is_date(day):
+            print(day)
+            experiments = os.listdir(os.path.join(home, day))
+            for experiment in experiments:
+                has_data = False
+                for _, dirnames, _ in os.walk(os.path.join(home, day, experiment)):
+                    if "data" in dirnames:
+                        has_data = True
+                        break
+                if not has_data:
+                    print(experiment)
 
 
 def dirname_has_substring(dirname: str, substr: str, return_last: bool = True):
@@ -138,7 +153,7 @@ class ExperimentDataManager:
         else:
             self.experiment_name = self.ensure_experiment_name(experiment_name)
         if experiment_date is None:
-            self.experiment_date = datetime.today().strftime("%Y_%m_%d")
+            self.experiment_date = datetime.today().strftime(DATE_FORMAT)
         else:
             self.experiment_date = experiment_date
         print(
