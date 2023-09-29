@@ -21,7 +21,7 @@ vals = [3, 346, 1.435784]
 edm.dump_some_variables(vals=vals)
 
 # create important data
-numeric_data = np.random.rand(30, 30) + 1j * np.random.rand(30, 30)
+numeric_data = np.random.rand(4, 4) + 1j * np.random.rand(4, 4)
 word_data = ["word", "chocolate", "bike"]
 
 cirq_qubits = cirq.LineQubit.range(10)
@@ -30,7 +30,7 @@ cirq_data = sum(cirq.X(q) for q in cirq_qubits)
 of_data = of.FermionOperator("3^ 1^ 2 3 ") + of.FermionOperator("2^ 4^ 2 3 ")
 
 mixed_list = [
-    np.array([1, 2, 4]),
+    np.array([1 + 3j, 0 + 0j, 2929 + 5858j]),
     1 + 3j,
     "hello",
 ]

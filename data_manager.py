@@ -93,10 +93,12 @@ def print_experiments_without_data(data_folder: str):
     for day in days:
         if is_date(day):
             print(day)
-            experiments = os.listdir(os.path.join(home, day))
+            experiments = os.listdir(os.path.join(data_folder, day))
             for experiment in experiments:
                 has_data = False
-                for _, dirnames, _ in os.walk(os.path.join(home, day, experiment)):
+                for _, dirnames, _ in os.walk(
+                    os.path.join(data_folder, day, experiment)
+                ):
                     if "data" in dirnames:
                         has_data = True
                         break
@@ -226,6 +228,18 @@ class ExperimentDataManager:
         )
 
     @property
+    def load_last_saved_data_file(self) -> str:
+        run_data_folder = os.path.join(self.current_saving_dirname, DATA_DIR)
+        filenames = os.listdir(run_data_folder)
+        fpath = os.path.join(run_data_folder, max(filenames))
+        jobj = json.loads(
+            io.open(fpath, "r", encoding="utf8").read(),
+            cls=ExtendedJSONDecoder,
+        )
+        print(f"Loaded file: {fpath}")
+        return jobj
+
+    @property
     def now(self):
         return datetime.today().strftime("%Y_%m_%d_%H_%M_%S")
 
@@ -348,10 +362,28 @@ class ExperimentDataManager:
         print("wrote json to {}".format(experiment_fpath))
         fstream.close()
 
-    def dump_some_variables(self, **kwargs):
+    def dump_some_variables(
+        self, large_array_threshold: int = -1, filename: str = "var_dump", **kwargs
+    ):
         print("dumping variables {}".format(kwargs.keys()))
-        kwargs.update({"now": self.now})
-        self.save_dict_to_experiment(kwargs, category=LOGGING_DIR, filename="var_dump")
+        # this function is for quick dumping of variable to identify
+        # a folder. For readability, we can hide big arrays
+        if large_array_threshold > 0:
+            for k in kwargs.keys():
+                item = kwargs[k]
+                try:
+                    if (
+                        isinstance(item, (tuple, list, np.ndarray))
+                        and len(item) > large_array_threshold
+                    ):
+                        kwargs[
+                            k
+                        ] = f"{item.__class__.__name__} array of len {len(item)}"
+                except:
+                    pass
+
+        kwargs.update({"__timestamp": self.now})
+        self.save_dict_to_experiment(kwargs, category=LOGGING_DIR, filename=filename)
 
     def save_figure(
         self, fig: plt.Figure, filename: str = None, add_timestamp: bool = True

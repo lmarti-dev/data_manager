@@ -59,7 +59,8 @@ class ExtendedJSONDecoder(JSONDecoder):
 def get_type(s: str) -> Any:
     try:
         # make it fail fast if needed
-        assert getattr(__builtins__, s).__name__ == "complex"
+        # somehow getattr(__builtins__, "complex") raises an error. why?
+        assert s == "complex"
         return complex
     except:
         pass
@@ -70,9 +71,15 @@ def get_type(s: str) -> Any:
     except:
         pass
     # the attr is the class with desired constructor
-    for cls in (cirq, of, sympy):
+    try:
+        getattr(cirq, s)
+        return lambda x: cirq.read_json(json_text=x)
+    except:
+        pass
+    for cls in (of, sympy):
         try:
             return getattr(cls, s)
         except:
             pass
+
     raise ValueError("{} is an unknown type".format(s))
