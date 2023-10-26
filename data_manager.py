@@ -131,6 +131,7 @@ class ExperimentDataManager:
         zero_padding_len: int = 5,
         experiment_date: str = None,
         start_new_run: bool = True,
+        dry_run: bool = False,
     ) -> None:
         # get everything to save for later
         self.overwrite_experiment = overwrite_experiment
@@ -138,6 +139,7 @@ class ExperimentDataManager:
         self.notes = notes
         self.data_folder = data_folder
         self.zero_padding_len = zero_padding_len
+        self.dry_run = dry_run
 
         if file_default_name is None:
             self.file_default_name = name_builder(["foods.txt"])
@@ -168,17 +170,22 @@ class ExperimentDataManager:
             self.new_run(notes=notes)
 
     def redirect_print(self):
-        print_output_fpath = self.get_experiment_fpath(
-            filename="print_output", extension=".log", subfolder=LOGGING_DIR
-        )
-        targets = logging.StreamHandler(sys.stdout), logging.FileHandler(
-            print_output_fpath
-        )
-        logging.basicConfig(format="%(message)s", level=logging.INFO, handlers=targets)
-        __main__.print = logging.info
-        print(
-            "Redirect print of {} to {}".format(__main__.__file__, print_output_fpath)
-        )
+        if not self.dry_run:
+            print_output_fpath = self.get_experiment_fpath(
+                filename="print_output", extension=".log", subfolder=LOGGING_DIR
+            )
+            targets = logging.StreamHandler(sys.stdout), logging.FileHandler(
+                print_output_fpath
+            )
+            logging.basicConfig(
+                format="%(message)s", level=logging.INFO, handlers=targets
+            )
+            __main__.print = logging.info
+            print(
+                "Redirect print of {} to {}".format(
+                    __main__.__file__, print_output_fpath
+                )
+            )
 
     def new_run(self, notes: str = None):
         if self.run_number is None:
@@ -313,7 +320,7 @@ class ExperimentDataManager:
             dirname = self.current_saving_dirname
 
         # create required path
-        if not os.path.exists(dirname):
+        if not self.dry_run and not os.path.exists(dirname):
             os.makedirs(dirname)
             print("created {}".format(dirname))
 
@@ -350,17 +357,21 @@ class ExperimentDataManager:
         category: str = DATA_DIR,
         add_timestamp: bool = True,
     ):
-        experiment_fpath = self.get_experiment_fpath(
-            filename, extension=".json", subfolder=category, add_timestamp=add_timestamp
-        )
-        print("saving object called {}".format(os.path.basename(experiment_fpath)))
-        jobj_str = json.dumps(
-            jobj, indent=4, ensure_ascii=False, cls=ExtendedJSONEncoder
-        )
-        fstream = io.open(experiment_fpath, "w+")
-        fstream.write(jobj_str)
-        print("wrote json to {}".format(experiment_fpath))
-        fstream.close()
+        if not self.dry_run:
+            experiment_fpath = self.get_experiment_fpath(
+                filename,
+                extension=".json",
+                subfolder=category,
+                add_timestamp=add_timestamp,
+            )
+            print("saving object called {}".format(os.path.basename(experiment_fpath)))
+            jobj_str = json.dumps(
+                jobj, indent=4, ensure_ascii=False, cls=ExtendedJSONEncoder
+            )
+            fstream = io.open(experiment_fpath, "w+")
+            fstream.write(jobj_str)
+            print("wrote json to {}".format(experiment_fpath))
+            fstream.close()
 
     def dump_some_variables(
         self, large_array_threshold: int = -1, filename: str = "var_dump", **kwargs
@@ -396,7 +407,8 @@ class ExperimentDataManager:
             subfolder=FIG_DIR,
             add_timestamp=add_timestamp,
         )
-        fig.savefig(figure_fpath, format="pdf")
+        if not self.dry_run:
+            fig.savefig(figure_fpath, format="pdf")
         print("saved figure to {}".format(figure_fpath))
         fig_data = get_figure_dict(fig=fig)
         self.save_dict_to_experiment(
