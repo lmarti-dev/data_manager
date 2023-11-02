@@ -397,7 +397,11 @@ class ExperimentDataManager:
         self.save_dict_to_experiment(kwargs, category=LOGGING_DIR, filename=filename)
 
     def save_figure(
-        self, fig: plt.Figure, filename: str = None, add_timestamp: bool = True
+        self,
+        fig: plt.Figure,
+        filename: str = None,
+        add_timestamp: bool = True,
+        save_data: bool = True,
     ):
         if filename is None:
             filename = name_builder(["foods.txt"])
@@ -410,7 +414,8 @@ class ExperimentDataManager:
         if not self.dry_run:
             fig.savefig(figure_fpath, format="pdf")
         print("saved figure to {}".format(figure_fpath))
-        fig_data = get_figure_dict(fig=fig)
-        self.save_dict_to_experiment(
-            filename=filename + "_data", jobj=fig_data, category=FIG_DIR
-        )
+        if save_data:
+            fig_data = get_figure_dict(fig=fig)
+            self.save_dict_to_experiment(
+                filename=filename + "_data", jobj=fig_data, category=FIG_DIR
+            )
