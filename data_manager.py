@@ -153,18 +153,19 @@ class ExperimentDataManager:
             )
 
         if self.overwrite_experiment:
-            self.experiment_name = experiment_name
+            self.experiment_name = "_".join(experiment_name, self.clock)
         else:
             self.experiment_name = self.ensure_experiment_name(experiment_name)
         if experiment_date is None:
             self.experiment_date = datetime.today().strftime(DATE_FORMAT)
         else:
             self.experiment_date = experiment_date
-        print(
-            "Experiment name: {} created {}. Clock reads {}".format(
-                self.experiment_name, self.experiment_date, self.now
+        if not self.dry_run:
+            print(
+                "Experiment name: {} created {}. Clock reads {}".format(
+                    self.experiment_name, self.experiment_date, self.now
+                )
             )
-        )
 
         if start_new_run:
             self.new_run(notes=notes)
@@ -193,7 +194,6 @@ class ExperimentDataManager:
         else:
             self.run_number += 1
         print("New run: starting run {}".format(self.run_number))
-        print("Run saving in folder: {}".format(self.current_run_dir))
 
         manifest = {"main_file": __main__.__file__, "timestamp": self.now}
         # add notes to manifest
@@ -204,7 +204,9 @@ class ExperimentDataManager:
             filename="manifest",
             category=LOGGING_DIR,
         )
-        print("Saved manifest: {}".format(manifest))
+        if not self.dry_run:
+            print("Run saving in folder: {}".format(self.current_run_dir))
+            print("Saved manifest: {}".format(manifest))
 
         self.store()
 
@@ -376,7 +378,8 @@ class ExperimentDataManager:
     def dump_some_variables(
         self, large_array_threshold: int = -1, filename: str = "var_dump", **kwargs
     ):
-        print("dumping variables {}".format(kwargs.keys()))
+        if not self.dry_run:
+            print("dumping variables {}".format(kwargs.keys()))
         # this function is for quick dumping of variable to identify
         # a folder. For readability, we can hide big arrays
         if large_array_threshold > 0:
@@ -413,7 +416,7 @@ class ExperimentDataManager:
         )
         if not self.dry_run:
             fig.savefig(figure_fpath, format="pdf")
-        print("saved figure to {}".format(figure_fpath))
+            print("saved figure to {}".format(figure_fpath))
         if save_data:
             fig_data = get_figure_dict(fig=fig)
             self.save_dict_to_experiment(
