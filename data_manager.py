@@ -141,25 +141,33 @@ class ExperimentDataManager:
         self.zero_padding_len = zero_padding_len
         self.dry_run = dry_run
 
+        # default filename
         if file_default_name is None:
             self.file_default_name = name_builder(["foods.txt"])
         else:
             self.file_default_name = file_default_name
+
+        # set run number to none, figure it out later
         self.run_number = None
 
-        if experiment_name is None:
-            experiment_name = name_builder(
-                ["scientists.txt", "ge_villes.txt"], self.clock
-            )
-
-        if self.overwrite_experiment:
-            self.experiment_name = "_".join(experiment_name, self.clock)
-        else:
-            self.experiment_name = self.ensure_experiment_name(experiment_name)
+        # in case we restore, we set the original date back
         if experiment_date is None:
             self.experiment_date = datetime.today().strftime(DATE_FORMAT)
         else:
             self.experiment_date = experiment_date
+
+        # create new name if none is given
+        if experiment_name is None:
+            experiment_name = name_builder(["scientists.txt", "ge_villes.txt"])
+        experiment_name = "_".join((experiment_name, self.clock))
+
+        # if we allow the experiment to continue over the original folder
+        if self.overwrite_experiment:
+            self.experiment_name = experiment_name
+        else:
+            self.experiment_name = self.ensure_experiment_name(experiment_name)
+
+        # save only if not dry run
         if not self.dry_run:
             print(
                 "Experiment name: {} created {}. Clock reads {}".format(
@@ -257,7 +265,7 @@ class ExperimentDataManager:
         return datetime.today().strftime("%Hh%M")
 
     def ensure_experiment_name(self, experiment_name):
-        folders = os.listdir(self.data_folder)
+        folders = os.listdir(os.path.join(self.data_folder, self.experiment_date))
         n_experiments = len([experiment_name == x for x in folders])
         if experiment_name in folders:
             experiment_name += "_" + f"{n_experiments:0{self.zero_padding_len}}"
