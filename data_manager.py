@@ -155,6 +155,8 @@ class ExperimentDataManager:
             self.experiment_date = datetime.today().strftime(DATE_FORMAT)
         else:
             self.experiment_date = experiment_date
+        if not self.dry_run:
+            self.create_date_folder()
 
         # create new name if none is given
         if experiment_name is None:
@@ -162,7 +164,7 @@ class ExperimentDataManager:
         experiment_name = "_".join((experiment_name, self.clock))
 
         # if we allow the experiment to continue over the original folder
-        if self.overwrite_experiment:
+        if self.overwrite_experiment or self.dry_run:
             self.experiment_name = experiment_name
         else:
             self.experiment_name = self.ensure_experiment_name(experiment_name)
@@ -177,6 +179,12 @@ class ExperimentDataManager:
 
         if start_new_run:
             self.new_run(notes=notes)
+
+    def create_date_folder(self):
+        dirname = os.path.join(self.data_folder, self.experiment_date)
+        if not self.dry_run and not os.path.exists(dirname):
+            os.makedirs(dirname)
+            print("created {}".format(dirname))
 
     def redirect_print(self):
         if not self.dry_run:
