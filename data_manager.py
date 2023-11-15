@@ -421,6 +421,7 @@ class ExperimentDataManager:
         filename: str = None,
         add_timestamp: bool = True,
         save_data: bool = True,
+        expand_figure: bool = True,
     ):
         if filename is None:
             filename = name_builder(["foods.txt"])
@@ -431,7 +432,10 @@ class ExperimentDataManager:
             add_timestamp=add_timestamp,
         )
         if not self.dry_run:
-            fig.savefig(figure_fpath, format="pdf")
+            bbox_inches = None
+            if expand_figure:
+                bbox_inches = "tight"
+            fig.savefig(figure_fpath, format="pdf", bbox_inches=bbox_inches)
             print("saved figure to {}".format(figure_fpath))
         if save_data:
             fig_data = get_figure_dict(fig=fig)
