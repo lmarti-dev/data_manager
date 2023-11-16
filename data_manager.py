@@ -209,7 +209,7 @@ class ExperimentDataManager:
             self.run_number = 0
         else:
             self.run_number += 1
-        print("New run: starting run {}".format(self.run_number))
+        print("Starting run {}".format(self.run_number))
 
         manifest = {"main_file": __main__.__file__, "timestamp": self.now}
         # add notes to manifest
