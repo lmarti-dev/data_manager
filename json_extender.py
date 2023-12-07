@@ -82,4 +82,4 @@ def get_type(s: str) -> Any:
         except:
             pass
 
-    raise ValueError("{} is an unknown type".format(s))
+    raise TypeError("{} is an unknown type".format(s))

@@ -1,20 +1,22 @@
-import os
-from datetime import datetime
+import configparser
 import io
-import numpy as np
-import __main__
-import logging
-import sys
-import matplotlib.pyplot as plt
-from json_extender import ExtendedJSONEncoder, ExtendedJSONDecoder
 import json
+import logging
+import os
+import sys
+from datetime import datetime
 
+import __main__
+import matplotlib.pyplot as plt
+import numpy as np
+from json_extender import ExtendedJSONDecoder, ExtendedJSONEncoder
 
 DATA_DIR = "data"
 FIG_DIR = "figures"
 LOGGING_DIR = "logging"
 RUN_DIR = "run"
 RESTORE_FILENAME = "edm_data"
+SETTINGS_FILENAME = "settings.ini"
 DATE_FORMAT = "%Y_%m_%d"
 
 
@@ -118,10 +120,20 @@ def dirname_has_substring(dirname: str, substr: str, return_last: bool = True):
         raise ValueError(f"{substr} not in {dirname}")
 
 
+def read_data_path():
+    fpath = os.path.join(os.path.dirname(__file__), SETTINGS_FILENAME)
+    if os.path.isfile(fpath):
+        config = configparser.ConfigParser()
+        config.read(os.path.join(os.path.dirname(__file__), SETTINGS_FILENAME))
+        return config["paths"]["data_path"]
+    else:
+        raise FileNotFoundError("settings.ini doesn't exist")
+
+
 class ExperimentDataManager:
     def __init__(
         self,
-        data_folder: os.PathLike,
+        data_folder: os.PathLike = None,
         *,
         experiment_name: str = None,
         file_default_name: str = None,
@@ -137,7 +149,10 @@ class ExperimentDataManager:
         self.overwrite_experiment = overwrite_experiment
         self.redirect_print_output = redirect_print_output
         self.notes = notes
-        self.data_folder = data_folder
+        if data_folder is None:
+            self.data_folder
+        else:
+            self.data_folder = data_folder
         self.zero_padding_len = zero_padding_len
         self.dry_run = dry_run
 
