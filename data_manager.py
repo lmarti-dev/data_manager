@@ -150,7 +150,7 @@ class ExperimentDataManager:
         self.redirect_print_output = redirect_print_output
         self.notes = notes
         if data_folder is None:
-            self.data_folder
+            self.data_folder = read_data_path()
         else:
             self.data_folder = data_folder
         self.zero_padding_len = zero_padding_len
