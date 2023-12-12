@@ -1,3 +1,2 @@
-from data_manager import ExperimentDataManager
-from data_manager import print_experiments_without_data
+from data_manager import ExperimentDataManager, print_experiments_without_data
 from json_extender import ExtendedJSONDecoder, ExtendedJSONEncoder
