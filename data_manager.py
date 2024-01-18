@@ -172,6 +172,8 @@ class ExperimentDataManager:
             self.experiment_date = experiment_date
         if not self.dry_run:
             self.create_date_folder()
+            if self.redirect_print_output:
+                self.redirect_print()
 
         # create new name if none is given
         if experiment_name is None:
@@ -424,7 +426,7 @@ class ExperimentDataManager:
                         kwargs[
                             k
                         ] = f"{item.__class__.__name__} array of len {len(item)}"
-                except:
+                except Exception:
                     pass
 
         kwargs.update({"__timestamp": self.now})
@@ -457,3 +459,7 @@ class ExperimentDataManager:
             self.save_dict_to_experiment(
                 filename=filename + "_data", jobj=fig_data, category=FIG_DIR
             )
+
+    @staticmethod
+    def load_figure_data(figure_fpath: os.PathLike):
+        pass
