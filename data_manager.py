@@ -10,6 +10,7 @@ import __main__
 import matplotlib.pyplot as plt
 import numpy as np
 from json_extender import ExtendedJSONDecoder, ExtendedJSONEncoder
+import pickle
 
 DATA_DIR = "data"
 FIG_DIR = "figures"
@@ -33,25 +34,73 @@ def random_word_from_list(fpath):
     return np.random.choice(lines)
 
 
-def get_figure_dict(fig: plt.Figure) -> dict:
+def get_figure_dict(fig: plt.Figure):
     fig_data = {}
     axes = fig.get_axes()
+    fig_data["axes"] = {}
     for ax_ind, ax in enumerate(axes):
         ax_k = f"ax_{ax_ind}"
         if ax_k not in fig_data:
-            fig_data[ax_k] = {}
+            fig_data["axes"][ax_k] = {}
+            fig_data["axes"][ax_k]["lines"] = {}
+            fig_data["axes"][ax_k]["labels"] = {}
         for line_ind, line in enumerate(ax.lines):
             x_data = line._x
             y_data = line._y
-            line_data = {"x_data": x_data, "y_data": y_data}
+            line_label = line.get_label()
+            line_data = {"x_data": x_data, "y_data": y_data, "label": line_label}
             line_k = f"line_{line_ind}"
-            fig_data[ax_k][line_k] = line_data
+            fig_data["axes"][ax_k]["lines"][line_k] = line_data
         x_label = ax.xaxis.label.get_text()
         y_label = ax.yaxis.label.get_text()
-        fig_data[ax_k]["x_label"] = x_label
-        fig_data[ax_k]["y_label"] = y_label
+        fig_data["axes"][ax_k]["labels"]["x_label"] = x_label
+        fig_data["axes"][ax_k]["labels"]["y_label"] = y_label
     fig_data["creator"] = __main__.__file__
+    specs = axes[0].get_gridspec()
+    fig_data["specs"] = (specs.nrows, specs.ncols)
     return fig_data
+
+
+def load_figure_data(figure_fpath: os.PathLike):
+    jobj = json.loads(
+        io.open(figure_fpath, "r", encoding="utf8").read(),
+        cls=ExtendedJSONDecoder,
+    )
+    keys = list(jobj.keys())
+    if "axes" in keys:
+        axes_data = jobj["axes"]
+    else:
+        axes_data = [jobj[key] for key in keys if "ax" in key]
+    if "specs" in keys:
+        (nrows, ncols) = jobj["specs"]
+        fig, axes = plt.subplots(nrows=nrows, ncols=ncols)
+    else:
+        n_subplots = sum([1 if "ax" in key else 0 for key in keys])
+        fig, axes = plt.subplots(nrows=n_subplots, ncols=1)
+
+    for ind, ax in enumerate(axes_data):
+        if "labels" not in ax.keys():
+            x_label = ax["x_label"]
+            y_label = ax["y_label"]
+        else:
+            x_label = ax["labels"]["x_label"]
+            y_label = ax["labels"]["y_label"]
+        if "lines" not in ax.keys():
+            lines = {key: ax[key] for key in ax.keys() if "line_" in key}
+        else:
+            lines = ax["lines"]
+        for line_ind in lines.keys():
+            label = None
+            if "label" in lines[line_ind].keys():
+                label = lines[line_ind]["label"]
+            axes[ind].plot(
+                lines[line_ind]["x_data"],
+                lines[line_ind]["y_data"],
+                label=label,
+            )
+            axes[ind].set_xlabel(x_label)
+            axes[ind].set_ylabel(y_label)
+    return fig
 
 
 def get_time_of_day() -> str:
@@ -172,8 +221,6 @@ class ExperimentDataManager:
             self.experiment_date = experiment_date
         if not self.dry_run:
             self.create_date_folder()
-            if self.redirect_print_output:
-                self.redirect_print()
 
         # create new name if none is given
         if experiment_name is None:
@@ -196,6 +243,9 @@ class ExperimentDataManager:
 
         if start_new_run:
             self.new_run(notes=notes)
+
+        if self.redirect_print_output and not self.dry_run:
+            self.redirect_print()
 
     def create_date_folder(self):
         dirname = os.path.join(self.data_folder, self.experiment_date)
@@ -437,7 +487,7 @@ class ExperimentDataManager:
         fig: plt.Figure,
         filename: str = None,
         add_timestamp: bool = True,
-        save_data: bool = True,
+        save_data: str = "pickle",
         expand_figure: bool = True,
     ):
         if filename is None:
@@ -454,12 +504,17 @@ class ExperimentDataManager:
                 bbox_inches = "tight"
             fig.savefig(figure_fpath, format="pdf", bbox_inches=bbox_inches)
             print("saved figure to {}".format(figure_fpath))
-        if save_data:
-            fig_data = get_figure_dict(fig=fig)
-            self.save_dict_to_experiment(
-                filename=filename + "_data", jobj=fig_data, category=FIG_DIR
-            )
-
-    @staticmethod
-    def load_figure_data(figure_fpath: os.PathLike):
-        pass
+            if save_data == "json":
+                fig_data = get_figure_dict(fig=fig)
+                self.save_dict_to_experiment(
+                    filename=filename + "_data", jobj=fig_data, category=FIG_DIR
+                )
+            elif save_data == "pickle":
+                experiment_fpath = self.get_experiment_fpath(
+                    filename + "_data",
+                    extension=".pickle",
+                    subfolder=FIG_DIR,
+                    add_timestamp=add_timestamp,
+                )
+                out_file = io.open(experiment_fpath, "wb+")
+                pickle.dump(fig, out_file)
