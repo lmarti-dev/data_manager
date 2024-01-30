@@ -139,22 +139,35 @@ def is_date(date):
         return False
 
 
-def print_experiments_without_data(data_folder: str):
+def get_experiments_without_data(data_folder: str):
+    experiments_without_data = {}
     days = os.listdir(data_folder)
+    experiments_without_data = {d: [] for d in days}
     for day in days:
         if is_date(day):
-            print(day)
             experiments = os.listdir(os.path.join(data_folder, day))
             for experiment in experiments:
                 has_data = False
                 for _, dirnames, _ in os.walk(
                     os.path.join(data_folder, day, experiment)
                 ):
-                    if "data" in dirnames:
+                    if "data" in dirnames or "figures" in dirnames:
                         has_data = True
                         break
                 if not has_data:
-                    print(experiment)
+                    experiments_without_data[day].append(experiment)
+    return experiments_without_data
+
+
+def print_experiments_without_data(data_folder: str):
+    experiments_without_data = get_experiments_without_data(data_folder=data_folder)
+    for day in experiments_without_data.keys():
+        print(day)
+        print("\n".join(experiments_without_data[day]))
+
+
+def delete_experiments_without_data(data_folder: str):
+    pass
 
 
 def dirname_has_substring(dirname: str, substr: str, return_last: bool = True):

@@ -5,7 +5,15 @@ import openfermion as of
 from typing import Any
 import sympy
 
-CIRQ_TYPES = (cirq.Qid, cirq.Gate, cirq.Operation, cirq.Moment, cirq.AbstractCircuit)
+CIRQ_TYPES = (
+    cirq.Qid,
+    cirq.Gate,
+    cirq.Operation,
+    cirq.Moment,
+    cirq.AbstractCircuit,
+    cirq.PauliSum,
+    cirq.PauliString,
+)
 
 OF_TYPES = (of.SymbolicOperator,)
 
@@ -74,6 +82,7 @@ def get_type(s: str) -> Any:
     try:
         getattr(cirq, s)
         return lambda x: cirq.read_json(json_text=x)
+    # TODO: figure out which errors would show up
     except Exception:
         pass
     for cls in (of, sympy):
