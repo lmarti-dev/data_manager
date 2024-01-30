@@ -5,7 +5,15 @@ import openfermion as of
 from typing import Any
 import sympy
 
-CIRQ_TYPES = (cirq.Qid, cirq.Gate, cirq.Operation, cirq.Moment, cirq.AbstractCircuit)
+CIRQ_TYPES = (
+    cirq.Qid,
+    cirq.Gate,
+    cirq.Operation,
+    cirq.Moment,
+    cirq.AbstractCircuit,
+    cirq.PauliSum,
+    cirq.PauliString,
+)
 
 OF_TYPES = (of.SymbolicOperator,)
 
@@ -62,24 +70,25 @@ def get_type(s: str) -> Any:
         # somehow getattr(__builtins__, "complex") raises an error. why?
         assert s == "complex"
         return complex
-    except:
+    except Exception:
         pass
     try:
         # hate this
         assert getattr(np, s).__name__ == "ndarray"
         return np.array
-    except:
+    except Exception:
         pass
     # the attr is the class with desired constructor
     try:
         getattr(cirq, s)
         return lambda x: cirq.read_json(json_text=x)
-    except:
+    # TODO: figure out which errors would show up
+    except Exception:
         pass
     for cls in (of, sympy):
         try:
             return getattr(cls, s)
-        except:
+        except Exception:
             pass
 
     raise TypeError("{} is an unknown type".format(s))
