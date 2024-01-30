@@ -70,13 +70,12 @@ def get_type(s: str) -> Any:
         # somehow getattr(__builtins__, "complex") raises an error. why?
         assert s == "complex"
         return complex
-    except Exception Exception:
+    except Exception:
         pass
     try:
         # hate this
         assert getattr(np, s).__name__ == "ndarray"
         return np.array
-    except Exception:
     except Exception:
         pass
     # the attr is the class with desired constructor
