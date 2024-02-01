@@ -5,9 +5,11 @@ import logging
 import os
 import sys
 from datetime import datetime
+from fau_colors import colors_dark
 
 import __main__
 import matplotlib.pyplot as plt
+from matplotlib import cycler
 import numpy as np
 from json_extender import ExtendedJSONDecoder, ExtendedJSONEncoder
 import pickle
@@ -19,6 +21,10 @@ RUN_DIR = "run"
 RESTORE_FILENAME = "edm_data"
 SETTINGS_FILENAME = "settings.ini"
 DATE_FORMAT = "%Y_%m_%d"
+
+
+def set_color_cycler():
+    plt.rcParams["axes.prop_cycle"] = cycler(color=list(colors_dark))
 
 
 def home() -> str:

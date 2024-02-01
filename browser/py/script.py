@@ -1,25 +1,23 @@
-from flask import Flask, render_template, redirect, url_for, request
+from flask import Flask, request
 from flask import make_response
+import os
+from data_manager import read_data_path, ExtendedJSONEncoder
 
 app = Flask(__name__)
 
 
-@app.route("/")
-def home():
-    return "hi"
+def get_walk_as_json():
+    data_path = read_data_path()
+    return os.walk(data_path)
 
 
-@app.route("/index")
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    message = None
-    if request.method == "POST":
-        datafromjs = request.form["mydata"]
-        result = "return this"
-        resp = make_response('{"response": ' + result + "}")
-        resp.headers["Content-Type"] = "application/json"
-        return resp
-        return render_template("login.html", message="")
+@app.route("/", methods=["POST"])
+def result():
+    print(request.form["foo"])  # should display 'bar'
+    result = "return this"
+    resp = make_response('{"response": ' + result + "}")
+    resp.headers["Content-Type"] = "application/json"
+    return resp
 
 
 if __name__ == "__main__":

@@ -3,26 +3,21 @@ async function run_script() {
 
     xhttp.onreadystatechange = function () {
         if (xhttp.readyState == XMLHttpRequest.DONE) {
-            ini_file = this.responseText
-            regex = /data_path = (.*)/
-            match = ini_file.match(regex)
-            console.log(match[1])
+            console.log("called the script")
         }
     };
 
 
-    xhttp.open("GET", "../settings.ini", true);
-    xhttp.setRequestHeader("Content-type", "text/json");
-    xhttp.overrideMimeType("text/json");
+    xhttp.open("POST", "./py/script.py", true);
+    xhttp.setRequestHeader("Content-type", "application/json");
+    xhttp.overrideMimeType("application/json");
     xhttp.send();
 }
 
 
 function main() {
-    load_files().then((e) => {
-
-
-
+    run_script().then((e) => {
+        console.log(e)
     });
 };
 
