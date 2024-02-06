@@ -3,16 +3,17 @@ import io
 import json
 import logging
 import os
+import pickle
 import sys
 from datetime import datetime
+
+import matplotlib.pyplot as plt
+import numpy as np
 from fau_colors import colors_dark
+from matplotlib import cycler
 
 import __main__
-import matplotlib.pyplot as plt
-from matplotlib import cycler
-import numpy as np
 from json_extender import ExtendedJSONDecoder, ExtendedJSONEncoder
-import pickle
 
 DATA_DIR = "data"
 FIG_DIR = "figures"
@@ -173,7 +174,7 @@ def print_experiments_without_data(data_folder: str):
 
 
 def delete_experiments_without_data(data_folder: str):
-    pass
+    raise NotImplementedError
 
 
 def dirname_has_substring(dirname: str, substr: str, return_last: bool = True):
@@ -263,9 +264,6 @@ class ExperimentDataManager:
         if start_new_run:
             self.new_run(notes=notes)
 
-        if self.redirect_print_output and not self.dry_run:
-            self.redirect_print()
-
     def create_date_folder(self):
         dirname = os.path.join(self.data_folder, self.experiment_date)
         if not self.dry_run and not os.path.exists(dirname):
@@ -295,7 +293,8 @@ class ExperimentDataManager:
             self.run_number = 0
         else:
             self.run_number += 1
-        print("Starting run {}".format(self.run_number))
+        if not self.dry_run:
+            print("Starting run {}".format(self.run_number))
 
         manifest = {"main_file": __main__.__file__, "timestamp": self.now}
         # add notes to manifest
@@ -309,6 +308,9 @@ class ExperimentDataManager:
         if not self.dry_run:
             print("Run saving in folder: {}".format(self.current_run_dir))
             print("Saved manifest: {}".format(manifest))
+
+        if self.redirect_print_output:
+            self.redirect_print()
 
         self.store()
 
@@ -492,9 +494,9 @@ class ExperimentDataManager:
                         isinstance(item, (tuple, list, np.ndarray))
                         and len(item) > large_array_threshold
                     ):
-                        kwargs[
-                            k
-                        ] = f"{item.__class__.__name__} array of len {len(item)}"
+                        kwargs[k] = (
+                            f"{item.__class__.__name__} array of len {len(item)}"
+                        )
                 except Exception:
                     pass
 
