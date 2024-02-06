@@ -6,6 +6,7 @@ import os
 import pickle
 import sys
 from datetime import datetime
+import shutil
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -153,16 +154,19 @@ def get_experiments_without_data(data_folder: str):
     for day in days:
         if is_date(day):
             experiments = os.listdir(os.path.join(data_folder, day))
-            for experiment in experiments:
-                has_data = False
-                for _, dirnames, _ in os.walk(
-                    os.path.join(data_folder, day, experiment)
-                ):
-                    if "data" in dirnames or "figures" in dirnames:
-                        has_data = True
-                        break
-                if not has_data:
-                    experiments_without_data[day].append(experiment)
+            if experiments == []:
+                experiments_without_data[day] = day
+            else:
+                for experiment in experiments:
+                    has_data = False
+                    for _, dirnames, _ in os.walk(
+                        os.path.join(data_folder, day, experiment)
+                    ):
+                        if "data" in dirnames or "figures" in dirnames:
+                            has_data = True
+                            break
+                    if not has_data:
+                        experiments_without_data[day].append(experiment)
     return experiments_without_data
 
 
@@ -174,7 +178,20 @@ def print_experiments_without_data(data_folder: str):
 
 
 def delete_experiments_without_data(data_folder: str):
-    raise NotImplementedError
+    ewd = get_experiments_without_data(data_folder)
+    print("This would delete the following folders:")
+    decision = ""
+    for k in ewd.keys():
+        for item in ewd[k]:
+            print(k, item)
+    while decision != "Y" and decision != "n":
+        print("Are you sure you want to continue? [Y/n]?")
+        decision = input()
+    if decision == "n":
+        print("Aborting")
+    if decision == "Y":
+        print("Deleting")
+    # shutil.rmtree
 
 
 def dirname_has_substring(dirname: str, substr: str, return_last: bool = True):

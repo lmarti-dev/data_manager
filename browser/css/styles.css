@@ -94,7 +94,7 @@ h3>a:after,
 h4>a:after,
 h5>a:after,
 h6>a:after {
-    content: '→';
+    content: '↑';
     position: absolute;
     opacity: 0;
     transition: .3s;
@@ -107,7 +107,7 @@ h4>a:hover:after,
 h5>a:hover:after,
 h6>a:hover:after {
     opacity: 1;
-    transform: translate(.5em) scale(1.24);
+    transform: translate(.25em, .15em) scale(1.24) rotate(90deg);
 }
 
 
@@ -164,6 +164,7 @@ b {
     font-weight: bold;
 }
 
+
 div.logging {
     display: flex;
     flex-direction: column;
@@ -211,7 +212,7 @@ div.logging-content>div.item {
     flex-grow: 1;
     flex-shrink: 4;
     margin: .1em;
-    flex-basis: 40%;
+    flex-basis: 15%;
 }
 
 img {

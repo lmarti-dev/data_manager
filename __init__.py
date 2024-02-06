@@ -1,4 +1,4 @@
-from data_manager import (
+from data_manager.data_manager import (
     ExperimentDataManager,
     print_experiments_without_data,
     set_color_cycler,
