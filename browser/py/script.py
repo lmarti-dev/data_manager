@@ -141,7 +141,7 @@ def manage_data(dirname: os.PathLike, item: str):
 def build_html():
     soup = BeautifulSoup("<div id='main'></div>", "html.parser")
     data_path, calendar = get_calendar()
-    calendar = filter(lambda x: not x.startswith("_"), calendar)
+    calendar = sorted(filter(lambda x: not x.startswith("_"), calendar))
     date_content_list = []
     for date in calendar:
         date_path = os.path.join(data_path, date)
@@ -203,5 +203,11 @@ def build_html():
     f_out.close()
 
 
+def check_img_folder():
+    if not os.path.isdir(IMG_PATH):
+        os.makedirs(IMG_PATH)
+
+
 if __name__ == "__main__":
+    check_img_folder()
     build_html()
