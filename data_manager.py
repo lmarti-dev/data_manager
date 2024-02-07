@@ -479,6 +479,7 @@ class ExperimentDataManager:
         filename: str = None,
         category: str = DATA_DIR,
         add_timestamp: bool = True,
+        return_fpath: bool = False,
     ):
         if not self.dry_run:
             experiment_fpath = self.get_experiment_fpath(
@@ -495,6 +496,8 @@ class ExperimentDataManager:
             fstream.write(jobj_str)
             print("wrote json to {}".format(experiment_fpath))
             fstream.close()
+            if return_fpath:
+                return experiment_fpath
 
     def dump_some_variables(
         self, large_array_threshold: int = -1, filename: str = "var_dump", **kwargs
