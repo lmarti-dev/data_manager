@@ -7,6 +7,7 @@ import fitz
 
 
 HOME = os.path.dirname(__file__)
+BASE_FPATH = os.path.join(HOME, "../base.html")
 HTML_FPATH = os.path.join(HOME, "../index.html")
 IMG_PATH = os.path.join(HOME, "../img")
 FILES_PATH = os.path.join(HOME, "../files")
@@ -189,8 +190,9 @@ def build_html():
             None, "h1", "browser", "Experiment Browser", date_content_list
         )
     )
-    f_stream = io.open(HTML_FPATH, "r", encoding="utf8")
+    f_stream = io.open(BASE_FPATH, "r", encoding="utf8")
     f_content = f_stream.read()
+
     out_soup = BeautifulSoup(f_content, "html.parser")
     out_soup.body.clear()
     out_soup.body.append(soup)
