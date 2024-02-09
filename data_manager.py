@@ -219,9 +219,9 @@ def read_data_path():
 class ExperimentDataManager:
     def __init__(
         self,
-        data_folder: os.PathLike = None,
         *,
         experiment_name: str = None,
+        data_folder: os.PathLike = None,
         file_default_name: str = None,
         overwrite_experiment: bool = False,
         redirect_print_output: bool = True,
