@@ -7,7 +7,7 @@ import fitz
 
 
 HOME = os.path.dirname(__file__)
-BASE_FPATH = os.path.join(HOME, "../base.html")
+BASE_FPATH = os.path.join(HOME, "../old_base.html")
 HTML_FPATH = os.path.join(HOME, "../index.html")
 IMG_PATH = os.path.join(HOME, "../img")
 FILES_PATH = os.path.join(HOME, "../files")
@@ -30,7 +30,12 @@ def convert_pdf(pdf_path):
 
 
 def get_title_and_content(
-    dirname: os.PathLike, h: str, cl: str, title: str, content: BeautifulSoup
+    dirname: os.PathLike,
+    h: str,
+    cl: str,
+    title: str,
+    content: BeautifulSoup,
+    supp_classes: str = "",
 ):
     soup = BeautifulSoup(f"<div class='{cl}'></div>", "html.parser")
     title_div = soup.new_tag("div", **{"class": f"{cl}-title"})
@@ -43,7 +48,7 @@ def get_title_and_content(
         title_h.string = title
     title_div.append(title_h)
     soup.div.append(title_div)
-    content_div = soup.new_tag("div", **{"class": f"{cl}-content"})
+    content_div = soup.new_tag("div", **{"class": f"{cl}-content {supp_classes}"})
     if content != "":
         if isinstance(content, list):
             for item in content:
@@ -60,6 +65,7 @@ def get_sub_content(
     div_class,
     folder_name,
     func: callable = lambda x, y: y,
+    supp_classes: str = "list-group-item list-group-item-action d-flex gap-3 py-3",
 ):
     folder_path = os.path.join(dirname, folder_name)
     items = os.listdir(folder_path)
@@ -72,14 +78,19 @@ def get_sub_content(
     ]
 
     soup = get_title_and_content(
-        folder_path, heading_level, folder_name, folder_name, content
+        folder_path,
+        heading_level,
+        folder_name,
+        folder_name,
+        content,
+        supp_classes,
     )
 
     return soup
 
 
-def manage_data(dirname: os.PathLike, item: str):
-    soup = BeautifulSoup("<div class='item'></div>", "html.parser")
+def manage_data(dirname: os.PathLike, item: str, supp_classes: str = ""):
+    soup = BeautifulSoup(f"<div class='item {supp_classes}'></div>", "html.parser")
     if os.path.basename(dirname) == "logging":
         if item.endswith(".json"):
             jobj = json.loads(
@@ -168,11 +179,17 @@ def build_html():
                                 folder_name=folder,
                                 div_class="folder",
                                 func=manage_data,
+                                supp_classes="container list-group-item",
                             )
                         )
                 run_content_list.append(
                     get_title_and_content(
-                        run_path, "h4", "run", run, folder_content_list
+                        run_path,
+                        "h4",
+                        "run",
+                        run,
+                        folder_content_list,
+                        "container list-group border-bottom",
                     )
                 )
             experiment_content_list.append(
