@@ -11,7 +11,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from constants import *
 from json_extender import ExtendedJSONDecoder, ExtendedJSONEncoder
-from utils import dirname_has_substring, get_figure_dict, name_builder, read_data_path
+from utils import (
+    dirname_has_substring,
+    get_figure_dict,
+    name_builder,
+    read_data_path,
+)
 
 
 class ExperimentDataManager:
@@ -201,7 +206,7 @@ class ExperimentDataManager:
             dirname = os.path.join(self.data_folder, self.experiment_date)
         else:
             dirname = self.data_folder
-            folders = os.listdir(dirname)
+        folders = os.listdir(dirname)
         n_experiments = len([experiment_name == x for x in folders])
         if experiment_name in folders:
             experiment_name += "_" + f"{n_experiments:0{self.zero_padding_len}}"
@@ -355,15 +360,16 @@ class ExperimentDataManager:
         save_data: str = "pickle",
         expand_figure: bool = True,
     ):
-        if filename is None:
-            filename = name_builder(["foods.txt"])
-        figure_fpath = self.get_experiment_fpath(
-            filename,
-            extension=".pdf",
-            subfolder=FIG_DIR,
-            add_timestamp=add_timestamp,
-        )
         if not self.dry_run:
+            if filename is None:
+                filename = name_builder(["foods.txt"])
+            figure_fpath = self.get_experiment_fpath(
+                filename,
+                extension=".pdf",
+                subfolder=FIG_DIR,
+                add_timestamp=add_timestamp,
+            )
+
             bbox_inches = None
             if expand_figure:
                 bbox_inches = "tight"
