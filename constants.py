@@ -1,0 +1,7 @@
+DATA_DIR = "data"
+FIG_DIR = "figures"
+LOGGING_DIR = "logging"
+RUN_DIR = "run"
+RESTORE_FILENAME = "edm_data"
+SETTINGS_FILENAME = "settings.ini"
+DATE_FORMAT = "%Y_%m_%d"
