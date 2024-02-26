@@ -540,12 +540,10 @@ class ExperimentDataManager:
             add_timestamp=add_timestamp,
         )
         if not self.dry_run:
-            bbox_inches = None
-            if expand_figure:
-                bbox_inches = "tight"
-            fig.savefig(figure_fpath, format="pdf", bbox_inches=bbox_inches)
-            print("saved figure to {}".format(figure_fpath))
+            # saving the data
             if save_data == "json":
+                # WARNING! this method saves only a fraction of the plot data
+                # use pickle if possible
                 fig_data = get_figure_dict(fig=fig)
                 self.save_dict_to_experiment(
                     filename=filename + "_data", jobj=fig_data, category=FIG_DIR
@@ -557,5 +555,23 @@ class ExperimentDataManager:
                     subfolder=FIG_DIR,
                     add_timestamp=add_timestamp,
                 )
-                out_file = io.open(experiment_fpath, "wb+")
-                pickle.dump(fig, out_file)
+                try:
+                    pkl = pickle.dumps(obj=fig)
+                    out_file = io.open(experiment_fpath, "wb+")
+                    out_file.write(pkl)
+                except TypeError:
+                    fig._cachedRenderer = None
+
+                    pkl = pickle.dumps(obj=fig)
+                    out_file = io.open(experiment_fpath, "wb+")
+                    out_file.write(pkl)
+
+            # saving the figure
+            # the figure needs to be saved after the data as sometimes
+            # one gets a TypeError from a faulty cache
+            # since you can't pickle a _io.BufferedWriter
+            bbox_inches = None
+            if expand_figure:
+                bbox_inches = "tight"
+            fig.savefig(figure_fpath, format="pdf", bbox_inches=bbox_inches)
+            print("saved figure to {}".format(figure_fpath))
