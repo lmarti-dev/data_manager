@@ -9,7 +9,7 @@ from datetime import datetime
 import __main__
 import matplotlib.pyplot as plt
 import numpy as np
-from constants import *
+import constants
 from json_extender import ExtendedJSONDecoder, ExtendedJSONEncoder
 from utils import (
     dirname_has_substring,
@@ -62,7 +62,7 @@ class ExperimentDataManager:
 
         # in case we restore, we set the original date back
         if experiment_date is None:
-            self.experiment_date = datetime.today().strftime(DATE_FORMAT)
+            self.experiment_date = datetime.today().strftime(constants.DATE_FORMAT)
         else:
             self.experiment_date = experiment_date
         if not self.dry_run and self.use_calendar:
@@ -110,7 +110,9 @@ class ExperimentDataManager:
     def redirect_print(self):
         if not self.dry_run:
             print_output_fpath = self.get_experiment_fpath(
-                filename="print_output", extension=".log", subfolder=LOGGING_DIR
+                filename="print_output",
+                extension=".log",
+                subfolder=constants.LOGGING_DIR,
             )
             targets = logging.StreamHandler(sys.stdout), logging.FileHandler(
                 print_output_fpath
@@ -133,7 +135,7 @@ class ExperimentDataManager:
         self.save_dict_to_experiment(
             jobj=manifest,
             filename="manifest",
-            category=LOGGING_DIR,
+            category=constants.LOGGING_DIR,
         )
         print("Saved manifest: {}".format(manifest))
 
@@ -151,21 +153,21 @@ class ExperimentDataManager:
 
     @property
     def current_data_dir(self) -> str:
-        return os.path.join(self.current_saving_dirname, DATA_DIR)
+        return os.path.join(self.current_saving_dirname, constants.DATA_DIR)
 
     @property
     def current_logging_dir(self) -> str:
-        return os.path.join(self.current_saving_dirname, LOGGING_DIR)
+        return os.path.join(self.current_saving_dirname, constants.LOGGING_DIR)
 
     @property
     def current_fig_dir(self) -> str:
-        return os.path.join(self.current_saving_dirname, FIG_DIR)
+        return os.path.join(self.current_saving_dirname, constants.FIG_DIR)
 
     @property
     def current_run_dir(self) -> str:
         if not self.use_runs:
             return ""
-        return RUN_DIR + "_" + f"{self.run_number:0{self.zero_padding_len}}"
+        return constants.RUN_DIR + "_" + f"{self.run_number:0{self.zero_padding_len}}"
 
     @property
     def current_saving_dirname(self):
@@ -183,7 +185,7 @@ class ExperimentDataManager:
 
     @property
     def load_last_saved_data_file(self) -> str:
-        run_data_folder = os.path.join(self.current_saving_dirname, DATA_DIR)
+        run_data_folder = os.path.join(self.current_saving_dirname, constants.DATA_DIR)
         filenames = os.listdir(run_data_folder)
         fpath = os.path.join(run_data_folder, max(filenames))
         jobj = json.loads(
@@ -229,7 +231,9 @@ class ExperimentDataManager:
             "current_run_dir": self.current_run_dir,
         }
         self.save_dict_to_experiment(
-            jobj=jobj, filename=RESTORE_FILENAME, category=LOGGING_DIR
+            jobj=jobj,
+            filename=constants.RESTORE_FILENAME,
+            category=constants.LOGGING_DIR,
         )
 
     @classmethod
@@ -239,11 +243,11 @@ class ExperimentDataManager:
         # so that your data and figures are in the same place
 
         # check there is a edm_save file
-        last_run = dirname_has_substring(experiment_dirname, RUN_DIR)
+        last_run = dirname_has_substring(experiment_dirname, constants.RUN_DIR)
         current_run_dir = os.path.join(experiment_dirname, last_run)
-        last_log = dirname_has_substring(current_run_dir, LOGGING_DIR)
+        last_log = dirname_has_substring(current_run_dir, constants.LOGGING_DIR)
         current_log_dir = os.path.join(current_run_dir, last_log)
-        restore_fn = dirname_has_substring(current_log_dir, RESTORE_FILENAME)
+        restore_fn = dirname_has_substring(current_log_dir, constants.RESTORE_FILENAME)
 
         # restore it
         restore_file = io.open(
@@ -306,7 +310,7 @@ class ExperimentDataManager:
         self,
         jobj: dict,
         filename: str = None,
-        category: str = DATA_DIR,
+        category: str = constants.DATA_DIR,
         add_timestamp: bool = True,
         return_fpath: bool = False,
     ):
@@ -350,7 +354,9 @@ class ExperimentDataManager:
                     pass
 
         kwargs.update({"__timestamp": self.now})
-        self.save_dict_to_experiment(kwargs, category=LOGGING_DIR, filename=filename)
+        self.save_dict_to_experiment(
+            kwargs, category=constants.LOGGING_DIR, filename=filename
+        )
 
     def save_figure(
         self,
@@ -366,40 +372,28 @@ class ExperimentDataManager:
             figure_fpath = self.get_experiment_fpath(
                 filename,
                 extension=".pdf",
-                subfolder=FIG_DIR,
+                subfolder=constants.FIG_DIR,
                 add_timestamp=add_timestamp,
             )
-
-            bbox_inches = None
-            if expand_figure:
-                bbox_inches = "tight"
-            fig.savefig(figure_fpath, format="pdf", bbox_inches=bbox_inches)
-            print("saved figure to {}".format(figure_fpath))
             if save_data == "json":
                 # WARNING! this method saves only a fraction of the plot data
                 # use pickle if possible
                 fig_data = get_figure_dict(fig=fig)
                 self.save_dict_to_experiment(
-                    filename=filename + "_data", jobj=fig_data, category=FIG_DIR
+                    filename=filename + "_data",
+                    jobj=fig_data,
+                    category=constants.FIG_DIR,
                 )
             elif save_data == "pickle":
                 experiment_fpath = self.get_experiment_fpath(
                     filename + "_data",
                     extension=".pickle",
-                    subfolder=FIG_DIR,
+                    subfolder=constants.FIG_DIR,
                     add_timestamp=add_timestamp,
                 )
-                try:
-                    pkl = pickle.dumps(obj=fig)
-                    out_file = io.open(experiment_fpath, "wb+")
-                    out_file.write(pkl)
-                except TypeError:
-                    fig._cachedRenderer = None
-
-                    pkl = pickle.dumps(obj=fig)
-                    out_file = io.open(experiment_fpath, "wb+")
-                    out_file.write(pkl)
-
+                pkl = pickle.dumps(obj=fig)
+                out_file = io.open(experiment_fpath, "wb+")
+                out_file.write(pkl)
             # saving the figure
             # the figure needs to be saved after the data as sometimes
             # one gets a TypeError from a faulty cache

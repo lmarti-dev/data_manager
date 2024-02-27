@@ -7,7 +7,7 @@ from datetime import datetime
 import __main__
 import matplotlib.pyplot as plt
 import numpy as np
-from constants import *
+import constants
 from fau_colors import colors_dark
 from json_extender import ExtendedJSONDecoder
 from matplotlib import cycler
@@ -129,7 +129,7 @@ def name_builder(wordlists: list, *args):
 
 def is_date(date):
     try:
-        datetime.strptime(date, DATE_FORMAT)
+        datetime.strptime(date, constants.DATE_FORMAT)
         return True
     except ValueError:
         return False
@@ -195,10 +195,12 @@ def dirname_has_substring(dirname: str, substr: str, return_last: bool = True):
 
 
 def read_data_path():
-    fpath = os.path.join(os.path.dirname(__file__), SETTINGS_FILENAME)
+    fpath = os.path.join(os.path.dirname(__file__), constants.SETTINGS_FILENAME)
     if os.path.isfile(fpath):
         config = configparser.ConfigParser()
-        config.read(os.path.join(os.path.dirname(__file__), SETTINGS_FILENAME))
+        config.read(
+            os.path.join(os.path.dirname(__file__), constants.SETTINGS_FILENAME)
+        )
         return config["paths"]["data_path"]
     else:
         raise FileNotFoundError("settings.ini doesn't exist")

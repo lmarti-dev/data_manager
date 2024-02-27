@@ -3,6 +3,7 @@ from data_manager.data_manager import (
     print_experiments_without_data,
     set_color_cycler,
     read_data_path,
+    utils,
 )  # noqa
 from json_extender import ExtendedJSONDecoder, ExtendedJSONEncoder  # noqa
 
@@ -13,4 +14,5 @@ __all__ = [
     "ExtendedJSONDecoder",
     "ExtendedJSONEncoder",
     "read_data_path",
+    "utils",
 ]
