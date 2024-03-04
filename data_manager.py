@@ -17,6 +17,8 @@ from utils import (
     name_builder,
     read_data_path,
 )
+from browser.py.browser_builder import build_browser
+import atexit
 
 
 class ExperimentDataManager:
@@ -36,6 +38,7 @@ class ExperimentDataManager:
         dry_run: bool = False,
         use_runs: bool = True,
         use_calendar: bool = True,
+        rebuild_webpage: bool = False,  # might change this to true
     ) -> None:
         # get everything to save for later
         self.overwrite_experiment = overwrite_experiment
@@ -93,6 +96,10 @@ class ExperimentDataManager:
                 self.new_run(notes=notes)
             else:
                 self.setup_logging(notes=notes)
+
+        # rebuild browser automatically
+        if not dry_run:
+            atexit.register(build_browser)
 
     def setup_logging(self, notes: str):
         if self.save_logging_files and not self.dry_run:
@@ -197,7 +204,7 @@ class ExperimentDataManager:
 
     @property
     def now(self):
-        return datetime.today().strftime("%Y_%m_%d_%H_%M_%S")
+        return datetime.today().strftime(constants.DATETIME_FORMAT)
 
     @property
     def clock(self):
