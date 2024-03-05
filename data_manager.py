@@ -62,6 +62,7 @@ class ExperimentDataManager:
         self.use_runs = use_runs
         self.save_logging_files = save_logging_files
         self.use_calendar = use_calendar
+        self.rebuild_webpage = rebuild_webpage
 
         # in case we restore, we set the original date back
         if experiment_date is None:
@@ -98,7 +99,7 @@ class ExperimentDataManager:
                 self.setup_logging(notes=notes)
 
         # rebuild browser automatically
-        if not dry_run:
+        if not dry_run and self.rebuild_webpage:
             atexit.register(build_browser)
 
     def setup_logging(self, notes: str):
