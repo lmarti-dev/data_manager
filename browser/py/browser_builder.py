@@ -61,7 +61,9 @@ def pretty_manifest(manifest: dict, which: str = "list"):
             if "timestamp" in k:
                 pass
             elif "main_file" in k:
-                manifest_list.append(fromstring(f"<code>{os.path.basename(v)}</code>"))
+                link = f"file://{normal_path(v)}"
+                code = builder.A(builder.CODE(os.path.basename(v)), **{"href": link})
+                manifest_list.append(code)
             elif "note" in k:
                 manifest_list.append(v)
         return manifest_list
@@ -71,9 +73,9 @@ def pretty_manifest(manifest: dict, which: str = "list"):
             if "timestamp" in k:
                 pass
             elif "main_file" in k:
-                manifest_dict["main file"] = fromstring(
-                    f"<code>{os.path.basename(v)}</code>"
-                )
+                link = f"file://{normal_path(v)}"
+                code = builder.A(builder.CODE(os.path.basename(v)), **{"href": link})
+                manifest_dict["main file"] = code
             elif "note" in k:
                 manifest_dict["notes"] = v
         return manifest_dict
@@ -305,7 +307,7 @@ def populate_run(experiment_path, run):
                 )
             )
             data_list.append(data_li)
-        if not data_list:
+        if not len(data_list):
             title.append(get_badge("Empty", "warning"))
         data_div.append(data_list)
         run_div.append(data_div)
@@ -343,7 +345,8 @@ def save_webpage_manifest(jobj: dict):
 
 
 def build_browser(refresh: bool = False):
-
+    if refresh:
+        print("Refreshing webpage")
     webpage_manifest = load_webpage_manifest()
     main_div = fromstring("<div id='main'></div>")
     display_div = builder.DIV(
@@ -456,7 +459,7 @@ def check_img_folder():
 
 
 if __name__ == "__main__":
-    # check_img_folder()
-    # build_browser()
+    check_img_folder()
+    build_browser(True)
 
-    build_webpage_manifest()
+    # build_webpage_manifest()
