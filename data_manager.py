@@ -373,6 +373,7 @@ class ExperimentDataManager:
         add_timestamp: bool = True,
         save_data: str = "pickle",
         expand_figure: bool = True,
+        fig_shape: str = "full",
     ):
         if not self.dry_run:
             if filename is None:
@@ -407,7 +408,19 @@ class ExperimentDataManager:
             # one gets a TypeError from a faulty cache
             # since you can't pickle a _io.BufferedWriter
             bbox_inches = None
+            figsize = plt.rcParams["figure.figsize"]
             if expand_figure:
                 bbox_inches = "tight"
-            fig.savefig(figure_fpath, format="pdf", bbox_inches=bbox_inches)
+            if fig_shape == "full":
+                pass
+            elif fig_shape == "half-y":
+                figsize = (figsize[0], figsize[1] / 2)
+            elif fig_shape == "half-x":
+                figsize = (figsize[0] / 2, figsize[1])
+            elif fig_shape == "half":
+                figsize = (figsize[0] / 2, figsize[1] / 2)
+            fig.set_size_inches(figsize[0], figsize[1])
+            fig.savefig(
+                figure_fpath, format="pdf", bbox_inches=bbox_inches, pad_inches=0.01
+            )
             print("saved figure to {}".format(figure_fpath))

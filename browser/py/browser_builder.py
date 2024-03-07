@@ -453,9 +453,19 @@ def build_webpage_manifest():
     save_webpage_manifest(jobj)
 
 
-def check_img_folder():
+def check_img_folder(refresh: bool = False):
     if not os.path.isdir(IMG_PATH):
         os.makedirs(IMG_PATH)
+    if refresh:
+        to_be_removed = []
+        for filename in os.listdir(IMG_PATH):
+            to_be_removed.append(os.remove(os.path.join(IMG_PATH, filename)))
+        x = input(f"Do you want to clear {len(to_be_removed)} images?")
+        if x == "Y":
+            for fpath in to_be_removed:
+                os.remove(fpath)
+        else:
+            pass
 
 
 if __name__ == "__main__":
