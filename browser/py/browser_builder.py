@@ -1,5 +1,9 @@
 import os
-from data_manager import read_data_path, ExtendedJSONDecoder, ExtendedJSONEncoder
+from json_extender import (
+    ExtendedJSONDecoder,
+    ExtendedJSONEncoder,
+)
+from utils import read_data_path
 
 import io
 import fitz
@@ -17,9 +21,14 @@ FRAGMENT_PATH = os.path.join(HOME, "../fragments")
 
 IMG_PATH = os.path.join(HOME, "../img")
 FILES_PATH = os.path.join(HOME, "../files")
-SCROLL_LIST_TAG = "exp-scroll-list"
+SCROLL_LIST_ID = "exp-scroll-list"
+DISPLAY_DIV_ID = "exp-display-div"
 
 WEBPAGE_MANIFEST_FPATH = os.path.join(HOME, "../files/manifest.json")
+
+
+DISPLAY_ID_PREFIX = "expe"
+SCROLL_ID_PREFIX = "scroll"
 
 
 def get_badge(text: str, badge_type: str):
@@ -130,17 +139,20 @@ def get_img_from_pdf(dirname, filename, height: str, width: str):
     return link
 
 
-def get_id_from_title_date(title: str, date: str):
+def get_id_from_title_date(title: str, date: str, prefix: str = None):
+    if prefix is not None:
+        return "_".join([prefix, title, date])
     return "_".join([title, date])
 
 
 def create_bs_scroll_item(title: str, body: str, date: str, figs):
     main_elem = builder.BUTTON(
         **{
+            "id": get_id_from_title_date(title, date, SCROLL_ID_PREFIX),
             "data-bs-toggle": "collapse",
-            "data-bs-target": f"#{get_id_from_title_date(title, date)}",
+            "data-bs-target": f"#{get_id_from_title_date(title, date,DISPLAY_ID_PREFIX)}",
             "class": "list-group-item list-group-item-action py-3 lh-sm",
-            "aria-controls": get_id_from_title_date(title, date),
+            "aria-controls": get_id_from_title_date(title, date, SCROLL_ID_PREFIX),
         }
     )
 
@@ -315,15 +327,26 @@ def populate_run(experiment_path, run):
     return run_div
 
 
+def get_folder_link(href: str):
+    return builder.A(
+        builder.I(**{"class": "bi bi-folder-symlink"}), **{"href": f"file://{href}"}
+    )
+
+
 def populate_from_data(experiment_path, title: str, date: str):
     main_div = builder.DIV(
-        builder.H1(os.path.basename(experiment_path), **{"class": "text-truncate"}),
+        builder.H1(
+            get_folder_link(href=experiment_path),
+            " ",
+            os.path.basename(experiment_path),
+            **{"class": "text-truncate"},
+        ),
         **{
             "class": "accordion-collapse collapse",
-            "data-bs-parent": "#experiment-acc",
+            "data-bs-parent": f"#{DISPLAY_DIV_ID}",
         },
     )
-    main_div.set("id", get_id_from_title_date(title, date))
+    main_div.set("id", get_id_from_title_date(title, date, DISPLAY_ID_PREFIX))
     for run in os.listdir(experiment_path):
         run_div = populate_run(experiment_path, run)
         main_div.append(run_div)
@@ -344,17 +367,42 @@ def save_webpage_manifest(jobj: dict):
     fstream.close()
 
 
-def build_browser(refresh: bool = False):
-    if refresh:
-        print("Refreshing webpage")
-    webpage_manifest = load_webpage_manifest()
+def add_to_browser(date, experiment, experiment_path):
+    self_id = get_id_from_title_date(
+        title=experiment, date=date, prefix=DISPLAY_ID_PREFIX
+    )
+    html, exp_scroll_list, display_container_div = get_scroll_list_and_display()
+    experiments_id = [y.get("id") for y in display_container_div.findall(".//*[@id]")]
+    if self_id not in experiments_id:
+        append_scroll_and_display(
+            display_container_div, exp_scroll_list, date, experiment, experiment_path
+        )
+        save_html(html)
+    else:
+        raise ValueError("adding an experiment that's already there?")
+
+
+def get_scroll_list_and_display():
+    html = load_html()
+    scroll_list = html.findall(f""".//*[@id='{SCROLL_LIST_ID}']""")[0]
+    display_conainer_div = html.findall(f""".//*[@id='{DISPLAY_DIV_ID}']""")[0]
+
+    return html, scroll_list, display_conainer_div
+
+
+def load_html():
+    html_str = io.open(HTML_FPATH, "r", encoding="utf8").read()
+    return fromstring(html_str)
+
+
+def rebuild_browser():
     main_div = fromstring("<div id='main'></div>")
-    display_div = builder.DIV(
-        **{"class": "scrollarea container", "id": "experiment-acc"}
+    display_container_div = builder.DIV(
+        **{"class": "scrollarea container", "id": DISPLAY_DIV_ID}
     )
     main_div.set("class", "d-flex flex-nowrap")
     scroller = create_scroller()
-    exp_scroll_list = scroller.findall(f""".//*[@id='{SCROLL_LIST_TAG}']""")[0]
+    exp_scroll_list = scroller.findall(f""".//*[@id='{SCROLL_LIST_ID}']""")[0]
     data_path, calendar = get_calendar()
     calendar = sorted(filter(lambda x: not x.startswith("_"), calendar))
     for date in calendar:
@@ -364,50 +412,27 @@ def build_browser(refresh: bool = False):
         for experiment in experiments:
             # print(f" - Processing {experiment}...")
             experiment_path = os.path.join(date_path, experiment)
-            experiment_latest_timestamp = get_latest_timestamp(
-                experiment=experiment, experiment_path=experiment_path
+
+            append_scroll_and_display(
+                display_container_div,
+                exp_scroll_list,
+                date,
+                experiment,
+                experiment_path,
             )
-            if experiment not in webpage_manifest.keys():
-                add_to_webpage = True
-                print(f"New experiment added to browser: {experiment}")
-            elif is_timestamp_newer(
-                experiment_latest_timestamp,
-                webpage_manifest[experiment],
-            ):
-                add_to_webpage = True
-                print(f"Experiment has changed: {experiment}, adding to browser")
-            else:
-                add_to_webpage = False
-            if add_to_webpage or refresh:
-                webpage_manifest[experiment] = experiment_latest_timestamp
-                figs = build_n_figs_div(
-                    experiment_path, height="64px", width="64px", n_img=3
-                )
-                experiment_display_div = populate_from_data(
-                    experiment_path, experiment, date
-                )
-                display_div.append(experiment_display_div)
-
-                manifest = get_manifest(
-                    os.path.join(
-                        experiment_path, os.listdir(experiment_path)[0], "logging"
-                    )
-                )
-
-                scroll_item = create_bs_scroll_item(
-                    experiment, pretty_manifest(manifest), date, figs
-                )
-                exp_scroll_list.append(scroll_item)
     main_div.append(get_svg_logos())
     main_div.append(get_change_theme())
     main_div.append(scroller)
     main_div.append(get_b_divider())
-    main_div.append(display_div)
+    main_div.append(display_container_div)
     out_html = get_fragment("base")
     out_body = out_html.find("body")
     out_body.text = None
     out_body.append(main_div)
+    save_html(out_html)
 
+
+def save_html(out_html):
     f_out = io.open(
         HTML_FPATH,
         "wb+",
@@ -416,8 +441,22 @@ def build_browser(refresh: bool = False):
     f_out.write(tostring(out_html, pretty_print=True, encoding="utf8"))
     f_out.close()
 
-    # save the updated manifest
-    save_webpage_manifest(webpage_manifest)
+
+def append_scroll_and_display(
+    display_container_div, exp_scroll_list, date, experiment, experiment_path
+):
+    figs = build_n_figs_div(experiment_path, height="64px", width="64px", n_img=3)
+    experiment_display_div = populate_from_data(experiment_path, experiment, date)
+    display_container_div.append(experiment_display_div)
+
+    manifest = get_manifest(
+        os.path.join(experiment_path, os.listdir(experiment_path)[0], "logging")
+    )
+
+    scroll_item = create_bs_scroll_item(
+        experiment, pretty_manifest(manifest), date, figs
+    )
+    exp_scroll_list.append(scroll_item)
 
 
 def get_latest_timestamp(experiment, experiment_path):
@@ -460,16 +499,18 @@ def check_img_folder(refresh: bool = False):
         to_be_removed = []
         for filename in os.listdir(IMG_PATH):
             to_be_removed.append(os.remove(os.path.join(IMG_PATH, filename)))
+        if not len(to_be_removed):
+            print("No images to remove")
+            return
         x = input(f"Do you want to clear {len(to_be_removed)} images?")
         if x == "Y":
             for fpath in to_be_removed:
+                print(f"Removing {fpath}")
                 os.remove(fpath)
         else:
             pass
 
 
 if __name__ == "__main__":
-    check_img_folder()
-    build_browser(True)
-
-    # build_webpage_manifest()
+    check_img_folder(True)
+    rebuild_browser()

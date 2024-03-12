@@ -1,3 +1,4 @@
+import atexit
 import io
 import json
 import logging
@@ -6,10 +7,12 @@ import pickle
 import sys
 from datetime import datetime
 
-import __main__
 import matplotlib.pyplot as plt
 import numpy as np
+
+import __main__
 import constants
+from browser.py.browser_builder import add_to_browser
 from json_extender import ExtendedJSONDecoder, ExtendedJSONEncoder
 from utils import (
     dirname_has_substring,
@@ -17,8 +20,6 @@ from utils import (
     name_builder,
     read_data_path,
 )
-from browser.py.browser_builder import build_browser
-import atexit
 
 
 class ExperimentDataManager:
@@ -38,7 +39,7 @@ class ExperimentDataManager:
         dry_run: bool = False,
         use_runs: bool = True,
         use_calendar: bool = True,
-        rebuild_webpage: bool = False,  # might change this to true
+        add_to_browser: bool = False,  # might change this to true
     ) -> None:
         # get everything to save for later
         self.overwrite_experiment = overwrite_experiment
@@ -62,15 +63,21 @@ class ExperimentDataManager:
         self.use_runs = use_runs
         self.save_logging_files = save_logging_files
         self.use_calendar = use_calendar
-        self.rebuild_webpage = rebuild_webpage
+        self.add_to_browser = add_to_browser
 
         # in case we restore, we set the original date back
         if experiment_date is None:
             self.experiment_date = datetime.today().strftime(constants.DATE_FORMAT)
         else:
             self.experiment_date = experiment_date
-        if not self.dry_run and self.use_calendar:
-            self.create_date_folder()
+        if not self.dry_run:
+            if self.use_calendar:
+                self.create_date_folder()
+            elif isinstance(self.use_calendar, str):
+                # TODO: build custom datefolders
+                pass
+            else:
+                pass
 
         # create new name if none is given
         if experiment_name is None:
@@ -99,8 +106,16 @@ class ExperimentDataManager:
                 self.setup_logging(notes=notes)
 
         # rebuild browser automatically
-        if not dry_run and self.rebuild_webpage:
-            atexit.register(build_browser)
+        if not dry_run and self.add_to_browser:
+            atexit.register(self.add_myself)
+
+    def add_myself(self):
+        experiment_path = os.path.join(
+            self.data_folder, self.experiment_date, self.experiment_name
+        )
+        return add_to_browser(
+            self.experiment_date, self.experiment_name, experiment_path
+        )
 
     def setup_logging(self, notes: str):
         if self.save_logging_files and not self.dry_run:
@@ -217,8 +232,8 @@ class ExperimentDataManager:
         else:
             dirname = self.data_folder
         folders = os.listdir(dirname)
-        n_experiments = len([experiment_name == x for x in folders])
         if experiment_name in folders:
+            n_experiments = sum([1 if experiment_name == x else 0 for x in folders])
             experiment_name += "_" + f"{n_experiments:0{self.zero_padding_len}}"
         return experiment_name
 
@@ -373,7 +388,7 @@ class ExperimentDataManager:
         add_timestamp: bool = True,
         save_data: str = "pickle",
         expand_figure: bool = True,
-        fig_shape: str = "full",
+        fig_shape: str = "regular",
     ):
         if not self.dry_run:
             if filename is None:
@@ -411,14 +426,18 @@ class ExperimentDataManager:
             figsize = plt.rcParams["figure.figsize"]
             if expand_figure:
                 bbox_inches = "tight"
-            if fig_shape == "full":
+
+            # a full figure fits snugly in a revtex column
+            if fig_shape == "regular":
                 pass
             elif fig_shape == "half-y":
                 figsize = (figsize[0], figsize[1] / 2)
             elif fig_shape == "half-x":
                 figsize = (figsize[0] / 2, figsize[1])
-            elif fig_shape == "half":
+            elif fig_shape == "half-size":
                 figsize = (figsize[0] / 2, figsize[1] / 2)
+            elif fig_shape == "page-wide":
+                figsize = (figsize[0] * 2, figsize[1])
             fig.set_size_inches(figsize[0], figsize[1])
             fig.savefig(
                 figure_fpath, format="pdf", bbox_inches=bbox_inches, pad_inches=0.01

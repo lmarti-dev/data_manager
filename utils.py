@@ -11,6 +11,7 @@ import constants
 from fau_colors import colors_dark
 from json_extender import ExtendedJSONDecoder
 from matplotlib import cycler
+import shutil
 
 
 def set_color_cycler():
@@ -179,7 +180,11 @@ def delete_experiments_without_data(data_folder: str):
         print("Aborting")
     if decision == "Y":
         print("Deleting")
-    # shutil.rmtree
+        for k in ewd.keys():
+            for item in ewd[k]:
+                fpath = os.path.join(data_folder, k, item)
+                print(f"Deleting: {fpath}")
+                shutil.rmtree(fpath)
 
 
 def dirname_has_substring(dirname: str, substr: str, return_last: bool = True):
