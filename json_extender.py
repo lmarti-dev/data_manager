@@ -44,6 +44,12 @@ class ExtendedJSONEncoder(JSONEncoder):
 
         elif isinstance(obj, (OF_TYPES, sympy.Symbol)):
             return {TYPE_FLAG: obj.__class__.__name__, ARGS_FLAG: str(obj)}
+
+        elif isinstance(obj, np.float128):
+            return {
+                TYPE_FLAG: "np.float128",
+                ARGS_FLAG: float(obj),
+            }
         return super().default(obj)
 
 
@@ -70,6 +76,11 @@ def get_type(s: str) -> Any:
         # somehow getattr(__builtins__, "complex") raises an error. why?
         assert s == "complex"
         return complex
+    except Exception:
+        pass
+    try:
+        assert s == "float128"
+        return np.float128
     except Exception:
         pass
     try:
