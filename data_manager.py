@@ -7,11 +7,9 @@ import pickle
 import sys
 from datetime import datetime
 
+import constants
 import matplotlib.pyplot as plt
 import numpy as np
-
-import __main__
-import constants
 from browser.py.browser_builder import add_to_browser
 from json_extender import ExtendedJSONDecoder, ExtendedJSONEncoder
 from utils import (
@@ -20,6 +18,8 @@ from utils import (
     name_builder,
     read_data_path,
 )
+
+import __main__
 
 
 class ExperimentDataManager:
@@ -39,7 +39,7 @@ class ExperimentDataManager:
         dry_run: bool = False,
         use_runs: bool = True,
         use_calendar: bool = True,
-        add_to_browser: bool = False,  # might change this to true
+        add_to_browser: bool = True,  # might change this to false
     ) -> None:
         # get everything to save for later
         self.overwrite_experiment = overwrite_experiment
@@ -428,6 +428,9 @@ class ExperimentDataManager:
                 bbox_inches = "tight"
 
             # a full figure fits snugly in a revtex column
+            michael_scaling = True
+            if michael_scaling:
+                figsize = (figsize[0], figsize[1] * 1.5)
             if fig_shape == "regular":
                 pass
             elif fig_shape == "half-y":

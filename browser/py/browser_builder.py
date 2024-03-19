@@ -1,19 +1,20 @@
+import io
+import json
 import os
+import re
+import uuid
+from datetime import datetime
+
+import constants
+import fitz
 from json_extender import (
     ExtendedJSONDecoder,
     ExtendedJSONEncoder,
 )
-from utils import read_data_path
-
-import io
-import fitz
-import re
-import json
-import constants
-from datetime import datetime
 
 # bs4 is for reading documents, not creating them.
-from lxml.html import fromstring, tostring, builder, HtmlElement
+from lxml.html import HtmlElement, builder, fromstring, tostring
+from utils import read_data_path
 
 HOME = os.path.dirname(__file__)
 HTML_FPATH = os.path.join(HOME, "../index.html")
@@ -37,16 +38,20 @@ def get_badge(text: str, badge_type: str):
 
 def get_var_dump(logging_dir: str):
     files = os.listdir(logging_dir)
-    var_dump = [x for x in files if x.startswith("var_dump")]
-    if len(var_dump):
-        jobj = json.loads(
-            io.open(
-                os.path.join(logging_dir, var_dump[0]), "r", encoding="utf8"
-            ).read(),
-            cls=ExtendedJSONDecoder,
-        )
+    var_dumps = [x for x in files if x.startswith("var_dump")]
+    if len(var_dumps) >= 1:
+        jobj = []
+        for var_dump in var_dumps:
+            jobj.append(
+                json.loads(
+                    io.open(
+                        os.path.join(logging_dir, var_dump), "r", encoding="utf8"
+                    ).read(),
+                    cls=ExtendedJSONDecoder,
+                )
+            )
         return jobj
-    return {}
+    return []
 
 
 def get_manifest(logging_dir: str):
@@ -111,8 +116,8 @@ def normal_path(path):
 
 
 def convert_pdf(pdf_path):
-    fname = os.path.splitext(os.path.basename(pdf_path))[0]
-    img_fpath = os.path.join(IMG_PATH, f"{fname}.jpeg")
+    img_uuid = uuid.uuid4()
+    img_fpath = os.path.join(IMG_PATH, f"{img_uuid}.jpeg")
     if not os.path.isfile(img_fpath):
         doc = fitz.open(pdf_path)
         page = doc.load_page(0)
@@ -292,15 +297,18 @@ def populate_run(experiment_path, run):
     if os.path.isdir(logging_dir):
         title = builder.H3("Logging")
         logging_div = builder.DIV(title, **{"class": "container"})
-        var_dump = get_var_dump(logging_dir)
+        var_dumps = get_var_dump(logging_dir)
         manifest = get_manifest(logging_dir)
         if manifest:
             logging_div.append(
                 dict_to_table(pretty_manifest(manifest, "dict"), "Manifest")
             )
-        if var_dump:
-            logging_div.append(dict_to_table(var_dump, "Dumped variables"))
-        if not manifest and not var_dump:
+        if len(var_dumps):
+            for vind, var_dump in enumerate(var_dumps):
+                logging_div.append(
+                    dict_to_table(var_dump, f"Dumped variables {vind+1}")
+                )
+        if not manifest and not var_dumps:
             title.append(get_badge("Empty", "warning"))
         run_div.append(logging_div)
     if os.path.isdir(data_dir):
@@ -492,25 +500,29 @@ def build_webpage_manifest():
     save_webpage_manifest(jobj)
 
 
-def check_img_folder(refresh: bool = False):
+def check_img_folder(refresh: bool = False, bypass_prompts: bool = False):
     if not os.path.isdir(IMG_PATH):
         os.makedirs(IMG_PATH)
     if refresh:
         to_be_removed = []
         for filename in os.listdir(IMG_PATH):
-            to_be_removed.append(os.remove(os.path.join(IMG_PATH, filename)))
+            to_be_removed.append(os.path.join(IMG_PATH, filename))
         if not len(to_be_removed):
             print("No images to remove")
             return
-        x = input(f"Do you want to clear {len(to_be_removed)} images?")
-        if x == "Y":
+        choice = False
+        if not bypass_prompts:
+            x = input(f"Do you want to clear {len(to_be_removed)} images?")
+            choice = x == "Y"
+
+        if choice or bypass_prompts:
             for fpath in to_be_removed:
-                print(f"Removing {fpath}")
-                os.remove(fpath)
-        else:
-            pass
+                if fpath is not None:
+                    print(f"Removing {fpath}")
+                    os.remove(fpath)
 
 
 if __name__ == "__main__":
-    check_img_folder(True)
+    check_img_folder(True, True)
+    print("Rebuilding browser")
     rebuild_browser()
