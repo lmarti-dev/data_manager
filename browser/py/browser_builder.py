@@ -25,14 +25,14 @@ FILES_PATH = os.path.join(HOME, "../files")
 SCROLL_LIST_ID = "exp-scroll-list"
 DISPLAY_DIV_ID = "exp-display-div"
 
-WEBPAGE_MANIFEST_FPATH = os.path.join(HOME, "../files/manifest.json")
+WEBPAGE_MANIFEST_DIRNAME = os.path.join(HOME, "../files/")
 
 
 DISPLAY_ID_PREFIX = "expe"
 SCROLL_ID_PREFIX = "scroll"
 
 
-def get_badge(text: str, badge_type: str):
+def get_badge(text: str, badge_type: str) -> HtmlElement:
     return builder.SPAN(text, **{"class": f"badge text-bg-{badge_type}"})
 
 
@@ -56,7 +56,7 @@ def get_var_dump(logging_dir: str):
 
 def get_manifest(logging_dir: str):
     files = os.listdir(logging_dir)
-    manifest = [x for x in files if x.startswith("manifest")]
+    manifest = [x for x in files if x.startswith(constants.MANIFEST_FILENAME)]
     if len(manifest):
         jobj = json.loads(
             io.open(
@@ -147,7 +147,8 @@ def get_img_from_pdf(dirname, filename, height: str, width: str):
 def get_id_from_title_date(title: str, date: str, prefix: str = None):
     if prefix is not None:
         return "_".join([prefix, title, date])
-    return "_".join([title, date])
+    else:
+        return "_".join([title, date])
 
 
 def create_bs_scroll_item(title: str, body: str, date: str, figs):
@@ -209,8 +210,11 @@ def get_svg_logos():
     return get_fragment("logos")
 
 
-def get_b_divider():
-    return get_fragment("b_divider")
+def get_b_divider(which):
+    if which == "h":
+        return get_fragment("b_divider_horizontal")
+    elif which == "v":
+        return get_fragment("b_divider_vertical")
 
 
 def get_change_theme():
@@ -270,14 +274,15 @@ def dict_to_table(d: dict, t: str = None, add_class: str = None):
         tr.append(builder.TH())
         tbody.append(tr)
     for k, v in d.items():
-        tr = builder.TR()
-        tdk = builder.TD()
-        tdk = process_item(tdk, k)
-        tdv = builder.TD()
-        tdv = process_item(tdv, v)
-        tr.append(tdk)
-        tr.append(tdv)
-        tbody.append(tr)
+        if not k.startswith("__"):
+            tr = builder.TR()
+            tdk = builder.TD()
+            tdk = process_item(tdk, k)
+            tdv = builder.TD()
+            tdv = process_item(tdv, v)
+            tr.append(tdk)
+            tr.append(tdv)
+            tbody.append(tr)
     table.append(tbody)
     return table
 
@@ -309,6 +314,7 @@ def populate_run(experiment_path, run):
                     dict_to_table(var_dump, f"Dumped variables {vind+1}")
                 )
         if not manifest and not var_dumps:
+            title.text = title.text + " "
             title.append(get_badge("Empty", "warning"))
         run_div.append(logging_div)
     if os.path.isdir(data_dir):
@@ -341,23 +347,67 @@ def get_folder_link(href: str):
     )
 
 
+def load_manifest(dirname):
+    return json.loads(
+        io.open(
+            dirname,
+            "r",
+            encoding="utf8",
+        ).read(),
+        cls=ExtendedJSONDecoder,
+    )
+
+
+def get_tag_div(taglist: list):
+    container_div = builder.DIV(builder.SPAN("Tagged with "), **{"class": "container"})
+    for tag in taglist:
+        container_div.append(builder.SPAN(" "))
+        container_div.append(get_badge(tag, "primary"))
+    return container_div
+
+
 def populate_from_data(experiment_path, title: str, date: str):
+    title_text = os.path.basename(experiment_path)
+    has_browser_data = False
+    if constants.BROWSER_FOLDER in os.listdir(experiment_path):
+        browser_manifest = load_manifest(
+            os.path.join(
+                experiment_path,
+                constants.BROWSER_FOLDER,
+                constants.LOGGING_DIR,
+                constants.MANIFEST_FILENAME + ".json",
+            )
+        )
+        title_text = browser_manifest["display_name"]
+        taglist = browser_manifest["tag_list"]
+        if "project" in browser_manifest.keys():
+            project = browser_manifest["project"]
+        else:
+            project = constants.OTHER_PROJECT
+        has_browser_data = True
+
     main_div = builder.DIV(
         builder.H1(
             get_folder_link(href=experiment_path),
             " ",
-            os.path.basename(experiment_path),
+            title_text,
             **{"class": "text-truncate"},
         ),
         **{
-            "class": "accordion-collapse collapse",
+            "class": "accordion-collapse collapse mb-2",
             "data-bs-parent": f"#{DISPLAY_DIV_ID}",
         },
     )
+    if has_browser_data:
+        main_div.append(builder.P("Part of ", get_badge(project, "info"), " project"))
+        main_div.append(get_tag_div(taglist))
+
     main_div.set("id", get_id_from_title_date(title, date, DISPLAY_ID_PREFIX))
     for run in os.listdir(experiment_path):
-        run_div = populate_run(experiment_path, run)
-        main_div.append(run_div)
+        if not run.startswith("__"):
+            run_div = populate_run(experiment_path, run)
+            main_div.append(run_div)
+
     return main_div
 
 
@@ -368,7 +418,7 @@ def is_timestamp_newer(new: str, ref: str):
 
 
 def save_webpage_manifest(jobj: dict):
-    fstream = io.open(WEBPAGE_MANIFEST_FPATH, "w+", encoding="utf8")
+    fstream = io.open(WEBPAGE_MANIFEST_DIRNAME, "w+", encoding="utf8")
     fstream.write(
         json.dumps(jobj, indent=4, ensure_ascii=False, cls=ExtendedJSONEncoder)
     )
@@ -380,7 +430,12 @@ def add_to_browser(date, experiment, experiment_path):
         title=experiment, date=date, prefix=DISPLAY_ID_PREFIX
     )
     html, exp_scroll_list, display_container_div = get_scroll_list_and_display()
-    experiments_id = [y.get("id") for y in display_container_div.findall(".//*[@id]")]
+    try:
+        experiments_id = [
+            y.get("id") for y in display_container_div.findall(".//*[@id]")
+        ]
+    except Exception:
+        raise ValueError("Could not search in div, did you setup the html file?")
     if self_id not in experiments_id:
         append_scroll_and_display(
             display_container_div, exp_scroll_list, date, experiment, experiment_path
@@ -403,7 +458,7 @@ def load_html():
     return fromstring(html_str)
 
 
-def rebuild_browser():
+def rebuild_browser(populate: bool = True):
     main_div = fromstring("<div id='main'></div>")
     display_container_div = builder.DIV(
         **{"class": "scrollarea container", "id": DISPLAY_DIV_ID}
@@ -413,25 +468,26 @@ def rebuild_browser():
     exp_scroll_list = scroller.findall(f""".//*[@id='{SCROLL_LIST_ID}']""")[0]
     data_path, calendar = get_calendar()
     calendar = sorted(filter(lambda x: not x.startswith("_"), calendar))
-    for date in calendar:
-        date_path = os.path.join(data_path, date)
-        # print(f"Processing {date}...")
-        experiments = os.listdir(date_path)
-        for experiment in experiments:
-            # print(f" - Processing {experiment}...")
-            experiment_path = os.path.join(date_path, experiment)
+    if populate:
+        for date in calendar:
+            date_path = os.path.join(data_path, date)
+            # print(f"Processing {date}...")
+            experiments = os.listdir(date_path)
+            for experiment in experiments:
+                # print(f" - Processing {experiment}...")
+                experiment_path = os.path.join(date_path, experiment)
 
-            append_scroll_and_display(
-                display_container_div,
-                exp_scroll_list,
-                date,
-                experiment,
-                experiment_path,
-            )
+                append_scroll_and_display(
+                    display_container_div,
+                    exp_scroll_list,
+                    date,
+                    experiment,
+                    experiment_path,
+                )
     main_div.append(get_svg_logos())
     main_div.append(get_change_theme())
     main_div.append(scroller)
-    main_div.append(get_b_divider())
+    main_div.append(get_b_divider("v"))
     main_div.append(display_container_div)
     out_html = get_fragment("base")
     out_body = out_html.find("body")
@@ -480,10 +536,7 @@ def get_latest_timestamp(experiment, experiment_path):
 
 
 def load_webpage_manifest():
-    return json.loads(
-        io.open(WEBPAGE_MANIFEST_FPATH, "r", encoding="utf8").read(),
-        cls=ExtendedJSONDecoder,
-    )
+    return load_manifest(WEBPAGE_MANIFEST_DIRNAME)
 
 
 def build_webpage_manifest():
@@ -523,6 +576,7 @@ def check_img_folder(refresh: bool = False, bypass_prompts: bool = False):
 
 
 if __name__ == "__main__":
-    check_img_folder(True, True)
+    print("Processing images")
+    check_img_folder(False, True)
     print("Rebuilding browser")
-    rebuild_browser()
+    rebuild_browser(False)

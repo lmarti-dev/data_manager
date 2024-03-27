@@ -18,7 +18,7 @@ edm = ExperimentDataManager(
 # dump some variables quickly
 vals = [3, 346, 1.435784]
 
-edm.dump_some_variables(vals=vals)
+edm.var_dump(vals=vals)
 
 # create important data
 numeric_data = np.random.rand(4, 4) + 1j * np.random.rand(4, 4)
@@ -36,7 +36,7 @@ mixed_list = [
 ]
 
 # save the data
-edm.save_dict_to_experiment(
+edm.save_dict(
     jobj={
         "numeric_data": numeric_data,
         "word_data": word_data,

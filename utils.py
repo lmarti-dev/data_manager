@@ -2,6 +2,7 @@ import configparser
 import io
 import json
 import os
+import re
 from datetime import datetime
 
 import __main__
@@ -9,9 +10,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import constants
 from fau_colors import colors_dark
-from json_extender import ExtendedJSONDecoder
+from json_extender import ExtendedJSONDecoder, ExtendedJSONEncoder
 from matplotlib import cycler
 import shutil
+
+
+def normalize_str(s: str):
+    s2 = re.sub(" ", "_", s)
+    return re.sub("[^A-Za-z0-9_]+", "", s2)
+
+
+def extended_dumps(jobj: dict) -> str:
+    return json.dumps(jobj, indent=4, ensure_ascii=False, cls=ExtendedJSONEncoder)
 
 
 def set_color_cycler():
@@ -199,13 +209,23 @@ def dirname_has_substring(dirname: str, substr: str, return_last: bool = True):
         raise ValueError(f"{substr} not in {dirname}")
 
 
-def read_data_path():
+def get_settings():
     fpath = os.path.join(os.path.dirname(__file__), constants.SETTINGS_FILENAME)
     if os.path.isfile(fpath):
         config = configparser.ConfigParser()
         config.read(
             os.path.join(os.path.dirname(__file__), constants.SETTINGS_FILENAME)
         )
-        return config["paths"]["data_path"]
+        return config
     else:
         raise FileNotFoundError("settings.ini doesn't exist")
+
+
+def get_project_list():
+    config = get_settings()
+    return json.loads(config["projects"]["project_list"])
+
+
+def read_data_path():
+    config = get_settings()
+    return config["paths"]["data_path"]

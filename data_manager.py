@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import pickle
+import re
 import sys
 from datetime import datetime
 
@@ -11,12 +12,15 @@ import constants
 import matplotlib.pyplot as plt
 import numpy as np
 from browser.py.browser_builder import add_to_browser
-from json_extender import ExtendedJSONDecoder, ExtendedJSONEncoder
+from json_extender import ExtendedJSONDecoder
 from utils import (
     dirname_has_substring,
     get_figure_dict,
     name_builder,
     read_data_path,
+    extended_dumps,
+    get_project_list,
+    normalize_str,
 )
 
 import __main__
@@ -40,8 +44,20 @@ class ExperimentDataManager:
         use_runs: bool = True,
         use_calendar: bool = True,
         add_to_browser: bool = True,  # might change this to false
+        tags: str = None,
+        project: str = None,
     ) -> None:
         # get everything to save for later
+        self.registered_projects = get_project_list()
+        if project is not None:
+            if project not in self.registered_projects:
+                raise ValueError(
+                    f"{project} is not in your registered projects: {self.registered_projects}"
+                )
+            else:
+                self.project = project
+        else:
+            self.project = constants.OTHER_PROJECT
         self.overwrite_experiment = overwrite_experiment
         self.redirect_print_output = redirect_print_output
         self.notes = notes
@@ -86,6 +102,8 @@ class ExperimentDataManager:
             experiment_name = "_".join((experiment_name, self.clock))
 
         # if we allow the experiment to continue over the original folder
+        # why the dry run? can't remember
+        experiment_name = normalize_str(experiment_name)
         if self.overwrite_experiment or self.dry_run:
             self.experiment_name = experiment_name
         else:
@@ -105,22 +123,60 @@ class ExperimentDataManager:
             else:
                 self.setup_logging(notes=notes)
 
+        if not self.dry_run:
+            self.create_browser_data(tags)
+
         # rebuild browser automatically
         if not dry_run and self.add_to_browser:
             atexit.register(self.add_myself)
 
-    def add_myself(self):
-        experiment_path = os.path.join(
+    def format_for_display(self, s: str):
+        s2 = re.sub(r"_[0-9]{2}h[0-9]{2}", "", s)
+        s2 = re.sub(r"_", " ", s2)
+        return s2
+
+    def create_browser_data(self, tags: str = None):
+        browser_data_dir = os.path.join(self.experiment_path, constants.BROWSER_FOLDER)
+        os.makedirs(browser_data_dir)
+
+        jobj = {
+            "display_name": self.format_for_display(self.experiment_name),
+            "project": self.project,
+        }
+        if tags is not None:
+            jobj["tag_list"] = self.process_tags(tags)
+        else:
+            jobj["tag_list"] = []
+
+        self.save_dict(
+            jobj,
+            filename=constants.MANIFEST_FILENAME,
+            category=constants.LOGGING_DIR,
+            dirname=browser_data_dir,
+            add_timestamp=False,
+        )
+
+    @property
+    def experiment_path(self):
+        return os.path.join(
             self.data_folder, self.experiment_date, self.experiment_name
         )
+
+    def add_myself(self):
         return add_to_browser(
-            self.experiment_date, self.experiment_name, experiment_path
+            self.experiment_date, self.experiment_name, self.experiment_path
         )
+
+    def process_tags(self, tags: str):
+        if isinstance(tags, (tuple, list)):
+            return tags
+        taglist = sorted(set(re.split(r"[,;\.] ?", tags)))
+        return taglist
 
     def setup_logging(self, notes: str):
         if self.save_logging_files and not self.dry_run:
             self.save_manifest(notes=notes)
-            self.store()
+            self.save_experiment_manager()
             if self.redirect_print_output:
                 self.redirect_print()
 
@@ -132,7 +188,7 @@ class ExperimentDataManager:
 
     def redirect_print(self):
         if not self.dry_run:
-            print_output_fpath = self.get_experiment_fpath(
+            print_output_fpath = self.get_savepath(
                 filename="print_output",
                 extension=".log",
                 subfolder=constants.LOGGING_DIR,
@@ -155,10 +211,11 @@ class ExperimentDataManager:
         # add notes to manifest
         if notes is not None:
             manifest["notes"] = notes
-        self.save_dict_to_experiment(
+        self.save_dict(
             jobj=manifest,
-            filename="manifest",
+            filename=constants.MANIFEST_FILENAME,
             category=constants.LOGGING_DIR,
+            add_timestamp=False,
         )
         print("Saved manifest: {}".format(manifest))
 
@@ -237,7 +294,7 @@ class ExperimentDataManager:
             experiment_name += "_" + f"{n_experiments:0{self.zero_padding_len}}"
         return experiment_name
 
-    def store(self):
+    def save_experiment_manager(self):
         # save self data for later use
         jobj = {
             "init": {
@@ -253,14 +310,14 @@ class ExperimentDataManager:
             "run_number": self.run_number,
             "current_run_dir": self.current_run_dir,
         }
-        self.save_dict_to_experiment(
+        self.save_dict(
             jobj=jobj,
             filename=constants.RESTORE_FILENAME,
             category=constants.LOGGING_DIR,
         )
 
     @classmethod
-    def restore(cls, experiment_dirname: str):
+    def load_experiment_manager(cls, experiment_dirname: str):
         # This allows you to pick up where you stopped,
         # and eventually also save figures in the corresponding folder
         # so that your data and figures are in the same place
@@ -284,19 +341,26 @@ class ExperimentDataManager:
         print("Experiment restored: {}".format(edm.current_saving_dirname))
         return edm
 
-    def get_experiment_fpath(
+    def get_savepath(
         self,
         filename: os.PathLike = None,
+        dirname: os.PathLike = None,
         extension: str = ".json",
         subfolder: os.PathLike = None,
         add_timestamp: bool = True,
     ):
         # get automatic full path to save file
         # check for subfolder
-        if subfolder:
-            dirname = os.path.join(self.current_saving_dirname, subfolder)
+        if dirname is None:
+            if subfolder is not None:
+                dirname = os.path.join(self.current_saving_dirname, subfolder)
+            else:
+                dirname = self.current_saving_dirname
         else:
-            dirname = self.current_saving_dirname
+            if subfolder is not None:
+                dirname = os.path.join(dirname, subfolder)
+            else:
+                pass
 
         # create required path
         if not self.dry_run and not os.path.exists(dirname):
@@ -326,37 +390,41 @@ class ExperimentDataManager:
             filename = filename + "_" + self.now
 
         # put everything together
-        experiment_fpath = os.path.join(dirname, filename + extension)
-        return experiment_fpath
+        current_run_savepath = os.path.join(dirname, filename + extension)
+        return current_run_savepath
 
-    def save_dict_to_experiment(
+    def save_dict(
         self,
         jobj: dict,
         filename: str = None,
         category: str = constants.DATA_DIR,
         add_timestamp: bool = True,
         return_fpath: bool = False,
+        dirname: str = None,
     ):
         if not self.dry_run:
-            experiment_fpath = self.get_experiment_fpath(
-                filename,
+            fpath = self.get_savepath(
+                dirname=dirname,
+                filename=filename,
                 extension=".json",
                 subfolder=category,
                 add_timestamp=add_timestamp,
             )
-            print("saving object called {}".format(os.path.basename(experiment_fpath)))
-            jobj_str = json.dumps(
-                jobj, indent=4, ensure_ascii=False, cls=ExtendedJSONEncoder
-            )
-            fstream = io.open(experiment_fpath, "w+")
+
+            print("saving object called {}".format(os.path.basename(fpath)))
+            jobj_str = extended_dumps(jobj)
+            fstream = io.open(fpath, "w+")
             fstream.write(jobj_str)
-            print("wrote json to {}".format(experiment_fpath))
+            print("wrote json to {}".format(fpath))
             fstream.close()
             if return_fpath:
-                return experiment_fpath
+                return fpath
 
-    def dump_some_variables(
-        self, large_array_threshold: int = -1, filename: str = "var_dump", **kwargs
+    def var_dump(
+        self,
+        large_array_threshold: int = -1,
+        filename: str = "var_dump",
+        **kwargs,
     ):
         if not self.dry_run:
             print("dumping variables {}".format(kwargs.keys()))
@@ -377,9 +445,7 @@ class ExperimentDataManager:
                     pass
 
         kwargs.update({"__timestamp": self.now})
-        self.save_dict_to_experiment(
-            kwargs, category=constants.LOGGING_DIR, filename=filename
-        )
+        self.save_dict(kwargs, category=constants.LOGGING_DIR, filename=filename)
 
     def save_figure(
         self,
@@ -393,7 +459,7 @@ class ExperimentDataManager:
         if not self.dry_run:
             if filename is None:
                 filename = name_builder(["foods.txt"])
-            figure_fpath = self.get_experiment_fpath(
+            figure_fpath = self.get_savepath(
                 filename,
                 extension=".pdf",
                 subfolder=constants.FIG_DIR,
@@ -403,13 +469,13 @@ class ExperimentDataManager:
                 # WARNING! this method saves only a fraction of the plot data
                 # use pickle if possible
                 fig_data = get_figure_dict(fig=fig)
-                self.save_dict_to_experiment(
+                self.save_dict(
                     filename=filename + "_data",
                     jobj=fig_data,
                     category=constants.FIG_DIR,
                 )
             elif save_data == "pickle":
-                experiment_fpath = self.get_experiment_fpath(
+                experiment_fpath = self.get_savepath(
                     filename + "_data",
                     extension=".pickle",
                     subfolder=constants.FIG_DIR,

@@ -5,9 +5,9 @@ import numpy as np
 edm = ExperimentDataManager(experiment_name="test_add_browser", add_to_browser=True)
 
 
-edm.save_dict_to_experiment({"this data": "is useless"})
+edm.save_dict({"this data": "is useless"})
 
-edm.dump_some_variables(hello="world", goodbye="heart")
+edm.var_dump(hello="world", goodbye="heart")
 
 fig, ax = plt.subplots()
 
