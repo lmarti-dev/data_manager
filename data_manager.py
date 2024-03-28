@@ -21,6 +21,7 @@ from utils import (
     extended_dumps,
     get_project_list,
     normalize_str,
+    timestamp_dict,
 )
 
 import __main__
@@ -38,7 +39,7 @@ class ExperimentDataManager:
         notes: str = None,
         zero_padding_len: int = 5,
         experiment_date: str = None,
-        add_timestamp: bool = True,
+        add_timestamp: bool = False,
         save_logging_files: bool = True,
         dry_run: bool = False,
         use_runs: bool = True,
@@ -207,7 +208,7 @@ class ExperimentDataManager:
             )
 
     def save_manifest(self, notes: str):
-        manifest = {"main_file": __main__.__file__, "timestamp": self.now}
+        manifest = {"main_file": __main__.__file__}
         # add notes to manifest
         if notes is not None:
             manifest["notes"] = notes
@@ -281,17 +282,23 @@ class ExperimentDataManager:
 
     @property
     def clock(self):
-        return datetime.today().strftime("%Hh%M")
+        return datetime.today().strftime(constants.CLOCK_FORMAT)
+
+    def change_filename_if_double(self, filename, dirname):
+        folders = os.listdir(dirname)
+        if filename in folders:
+            n_experiments = sum([1 if filename == x else 0 for x in folders])
+            filename += "_" + f"{n_experiments:0{self.zero_padding_len}}"
+        return filename
 
     def ensure_experiment_name(self, experiment_name):
         if self.use_calendar:
             dirname = os.path.join(self.data_folder, self.experiment_date)
         else:
             dirname = self.data_folder
-        folders = os.listdir(dirname)
-        if experiment_name in folders:
-            n_experiments = sum([1 if experiment_name == x else 0 for x in folders])
-            experiment_name += "_" + f"{n_experiments:0{self.zero_padding_len}}"
+        experiment_name = self.change_filename_if_double(
+            filename=experiment_name, dirname=dirname
+        )
         return experiment_name
 
     def save_experiment_manager(self):
@@ -385,6 +392,9 @@ class ExperimentDataManager:
             if "." in filename:
                 filename = os.path.splitext(os.path.basename(filename))[0]
 
+        # check for similar filename and append 000x at end if true
+        filename = self.change_filename_if_double(filename=filename, dirname=dirname)
+
         # time stamp it
         if add_timestamp:
             filename = filename + "_" + self.now
@@ -398,7 +408,7 @@ class ExperimentDataManager:
         jobj: dict,
         filename: str = None,
         category: str = constants.DATA_DIR,
-        add_timestamp: bool = True,
+        add_timestamp: bool = False,
         return_fpath: bool = False,
         dirname: str = None,
     ):
@@ -410,6 +420,10 @@ class ExperimentDataManager:
                 subfolder=category,
                 add_timestamp=add_timestamp,
             )
+            # if list, turn into dict to timestamp
+            if not isinstance(jobj, dict):
+                jobj = {"__content": jobj}
+            timestamp_dict(jobj)
 
             print("saving object called {}".format(os.path.basename(fpath)))
             jobj_str = extended_dumps(jobj)
@@ -444,8 +458,12 @@ class ExperimentDataManager:
                 except Exception:
                     pass
 
-        kwargs.update({"__timestamp": self.now})
-        self.save_dict(kwargs, category=constants.LOGGING_DIR, filename=filename)
+        self.save_dict(
+            kwargs,
+            category=constants.LOGGING_DIR,
+            filename=filename,
+            add_timestamp=False,
+        )
 
     def save_figure(
         self,

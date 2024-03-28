@@ -15,6 +15,27 @@ from matplotlib import cycler
 import shutil
 
 
+def get_most_recent_timestamped_files(files: list):
+    timestamps = []
+    for f in files:
+        jobj = json.loads(
+            io.open(f, "r", encoding="utf8").read(), cls=ExtendedJSONDecoder
+        )
+        if constants.TIMESTAMP_KEY in jobj.keys():
+            timestamps.append(jobj[constants.TIMESTAMP_KEY])
+        else:
+            raise KeyError(f"{f} is not timestamped, cannot compare files")
+
+    ind = np.argmax(
+        [datetime.strptime(x, constants.DATETIME_FORMAT) for x in timestamps]
+    )
+    return files[ind]
+
+
+def timestamp_dict(d: dict):
+    d[constants.TIMESTAMP_KEY] = datetime.today().strftime(constants.DATETIME_FORMAT)
+
+
 def normalize_str(s: str):
     s2 = re.sub(" ", "_", s)
     return re.sub("[^A-Za-z0-9_]+", "", s2)
@@ -130,7 +151,9 @@ def get_time_of_day() -> str:
 
 
 def name_from_list(list_name: str) -> str:
-    return random_word_from_list(os.path.join(wordlists_dir(), list_name))
+    return normalize_str(
+        random_word_from_list(os.path.join(wordlists_dir(), list_name))
+    )
 
 
 def name_builder(wordlists: list, *args):
