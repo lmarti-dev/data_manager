@@ -359,6 +359,8 @@ def load_manifest(dirname):
 
 
 def get_tag_div(taglist: list):
+    if not len(taglist):
+        return None
     container_div = builder.DIV(builder.SPAN("Tagged with "), **{"class": "container"})
     for tag in taglist:
         container_div.append(builder.SPAN(" "))
@@ -400,7 +402,9 @@ def populate_from_data(experiment_path, title: str, date: str):
     )
     if has_browser_data:
         main_div.append(builder.P("Part of ", get_badge(project, "info"), " project"))
-        main_div.append(get_tag_div(taglist))
+        tag_div = get_tag_div(taglist)
+        if tag_div is not None:
+            main_div.append(tag_div)
 
     main_div.set("id", get_id_from_title_date(title, date, DISPLAY_ID_PREFIX))
     for run in os.listdir(experiment_path):
