@@ -6,6 +6,7 @@ import os
 import pickle
 import re
 import sys
+import uuid
 from datetime import datetime
 
 import constants
@@ -15,12 +16,12 @@ from browser.py.browser_builder import add_to_browser
 from json_extender import ExtendedJSONDecoder
 from utils import (
     dirname_has_substring,
-    get_figure_dict,
-    name_builder,
-    read_data_path,
     extended_dumps,
+    get_figure_dict,
     get_project_list,
+    name_builder,
     normalize_str,
+    read_data_path,
     timestamp_dict,
 )
 
@@ -47,6 +48,7 @@ class ExperimentDataManager:
         add_to_browser: bool = True,  # might change this to false
         tags: str = None,
         project: str = None,
+        start_new_run: bool = True,
     ) -> None:
         # get everything to save for later
         self.registered_projects = get_project_list()
@@ -59,7 +61,6 @@ class ExperimentDataManager:
                 self.project = project
         else:
             self.project = constants.OTHER_PROJECT
-        self.overwrite_experiment = overwrite_experiment
         self.redirect_print_output = redirect_print_output
         self.notes = notes
         if data_folder is None:
@@ -90,9 +91,6 @@ class ExperimentDataManager:
         if not self.dry_run:
             if self.use_calendar:
                 self.create_date_folder()
-            elif isinstance(self.use_calendar, str):
-                # TODO: build custom datefolders
-                pass
             else:
                 pass
 
@@ -105,7 +103,7 @@ class ExperimentDataManager:
         # if we allow the experiment to continue over the original folder
         # why the dry run? can't remember
         experiment_name = normalize_str(experiment_name)
-        if self.overwrite_experiment or self.dry_run:
+        if overwrite_experiment or self.dry_run:
             self.experiment_name = experiment_name
         else:
             self.experiment_name = self.ensure_experiment_name(experiment_name)
@@ -119,30 +117,34 @@ class ExperimentDataManager:
             )
 
         if not dry_run:
-            if self.use_runs:
+            if self.use_runs and start_new_run:
                 self.new_run(notes=notes)
             else:
                 self.setup_logging(notes=notes)
 
-        if not self.dry_run:
+        # create browser data for later ez browsing
+        if not self.dry_run and self.save_logging_files:
             self.create_browser_data(tags)
 
         # rebuild browser automatically
         if not dry_run and self.add_to_browser:
             atexit.register(self.add_myself)
 
-    def format_for_display(self, s: str):
+    @classmethod
+    def format_for_display(cls, s: str):
         s2 = re.sub(r"_[0-9]{2}h[0-9]{2}", "", s)
         s2 = re.sub(r"_", " ", s2)
         return s2
 
     def create_browser_data(self, tags: str = None):
         browser_data_dir = os.path.join(self.experiment_path, constants.BROWSER_FOLDER)
-        os.makedirs(browser_data_dir)
+        if not os.path.isdir(browser_data_dir):
+            os.makedirs(browser_data_dir)
 
         jobj = {
             "display_name": self.format_for_display(self.experiment_name),
             "project": self.project,
+            "uuid": f"project_{uuid.uuid4()}",
         }
         if tags is not None:
             jobj["tag_list"] = self.process_tags(tags)
@@ -164,9 +166,12 @@ class ExperimentDataManager:
         )
 
     def add_myself(self):
-        return add_to_browser(
-            self.experiment_date, self.experiment_name, self.experiment_path
-        )
+        try:
+            return add_to_browser(
+                self.experiment_date, self.experiment_name, self.experiment_path
+            )
+        except Exception:
+            pass
 
     def process_tags(self, tags: str):
         if isinstance(tags, (tuple, list)):
@@ -286,10 +291,19 @@ class ExperimentDataManager:
 
     def change_filename_if_double(self, filename, dirname):
         folders = os.listdir(dirname)
-        if filename in folders:
-            n_experiments = sum([1 if filename == x else 0 for x in folders])
-            filename += "_" + f"{n_experiments:0{self.zero_padding_len}}"
-        return filename
+        original_filename = filename
+        trial_filename = filename
+        n = 1
+        n_tries = 0
+        while trial_filename in folders:
+            trial_filename = original_filename + "_" + f"{n:0{self.zero_padding_len}}"
+            n += 1
+            n_tries += 1
+            # in case you know
+            if n_tries > 1000:
+                trial_filename = original_filename + name_builder(["animals.txt"])
+                return trial_filename
+        return trial_filename
 
     def ensure_experiment_name(self, experiment_name):
         if self.use_calendar:
@@ -305,14 +319,15 @@ class ExperimentDataManager:
         # save self data for later use
         jobj = {
             "init": {
-                "data_folder": self.data_folder,
                 "experiment_name": self.experiment_name,
                 "file_default_name": self.file_default_name,
-                "overwrite_experiment": self.overwrite_experiment,
                 "redirect_print_output": self.redirect_print_output,
                 "zero_padding_len": self.zero_padding_len,
                 "experiment_date": self.experiment_date,
                 "use_runs": self.use_runs,
+                "use_calendar": self.use_calendar,
+                "project": self.project,
+                "notes": self.notes,
             },
             "run_number": self.run_number,
             "current_run_dir": self.current_run_dir,
@@ -343,7 +358,22 @@ class ExperimentDataManager:
 
         # load jobj and restore without new run
         jobj = json.loads(restore_file, cls=ExtendedJSONDecoder)
-        edm = ExperimentDataManager(**jobj["init"], save_logging_files=False)
+
+        # hacky stuff for legacy
+        if "data_folder" in jobj["init"].keys():
+            jobj["init"]["data_folder"] = read_data_path()
+        if "overwrite_experiment" in jobj["init"].keys():
+            del jobj["init"]["overwrite_experiment"]
+        if "experiment_name" in jobj["init"].keys():
+            del jobj["init"]["experiment_name"]
+        edm = ExperimentDataManager(
+            **jobj["init"],
+            experiment_name=os.path.basename(experiment_dirname),
+            save_logging_files=False,
+            add_to_browser=False,
+            overwrite_experiment=True,
+            start_new_run=False,
+        )
         edm.run_number = jobj["run_number"]
         print("Experiment restored: {}".format(edm.current_saving_dirname))
         return edm
@@ -513,8 +543,12 @@ class ExperimentDataManager:
 
             # a full figure fits snugly in a revtex column
             michael_scaling = True
+            subplot_row_scaling = True
             if michael_scaling:
                 figsize = (figsize[0], figsize[1] * 1.5)
+            if subplot_row_scaling:
+                gridspec = fig.get_axes()[0].get_gridspec()
+                figsize = (figsize[0], figsize[1] * gridspec.nrows / 2)
             if fig_shape == "regular":
                 pass
             elif fig_shape == "half-y":

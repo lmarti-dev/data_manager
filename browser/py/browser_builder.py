@@ -14,7 +14,7 @@ from json_extender import (
 
 # bs4 is for reading documents, not creating them.
 from lxml.html import HtmlElement, builder, fromstring, tostring
-from utils import read_data_path
+from utils import read_data_path, get_project_list
 
 HOME = os.path.dirname(__file__)
 HTML_FPATH = os.path.join(HOME, "../index.html")
@@ -23,6 +23,7 @@ FRAGMENT_PATH = os.path.join(HOME, "../fragments")
 IMG_PATH = os.path.join(HOME, "../img")
 FILES_PATH = os.path.join(HOME, "../files")
 SCROLL_LIST_ID = "exp-scroll-list"
+SCROLL_TITLE_ID = "scroller-title-container"
 DISPLAY_DIV_ID = "exp-display-div"
 
 WEBPAGE_MANIFEST_DIRNAME = os.path.join(HOME, "../files/")
@@ -30,6 +31,8 @@ WEBPAGE_MANIFEST_DIRNAME = os.path.join(HOME, "../files/")
 
 DISPLAY_ID_PREFIX = "expe"
 SCROLL_ID_PREFIX = "scroll"
+PROJECT_SELECT_DROPDOWN_ID = "project-select-dropdown"
+PROJECT_SELECT_ACTIVE_TEXT_ID = "project-select-active-text"
 
 
 def get_badge(text: str, badge_type: str) -> HtmlElement:
@@ -52,6 +55,36 @@ def get_var_dump(logging_dir: str):
             )
         return jobj
     return []
+
+
+def get_project_id(project):
+    return "project-" + re.sub(r"\W", "-", project)
+
+
+def get_project_class(project):
+    return "part-of-" + get_project_id(project=project)
+
+
+def get_project_dropdown():
+    projects: list = get_project_list()
+    all_projects = ["all projects"] + projects + [constants.OTHER_PROJECT + " project"]
+    dropdown = get_fragment("dropdown")
+    dropdown.classes.add("mx-3")
+
+    dropdown.set("id", PROJECT_SELECT_DROPDOWN_ID)
+    dropdown_active_text: HtmlElement = dropdown.xpath(
+        "//button[contains(@class,'dropdown-toggle')]"
+    )[0]
+    dropdown_active_text.set("id", PROJECT_SELECT_ACTIVE_TEXT_ID)
+    dropdown_active_text.text = all_projects[0]
+    dropdown_menu: HtmlElement = dropdown.xpath("//div[@class='dropdown-menu']")[0]
+    for project in all_projects:
+        dropdown_menu.append(
+            fromstring(
+                f"<button class='dropdown-item' href='#' id='{get_project_id(project)}'>{project}</button>"
+            )
+        )
+    return dropdown
 
 
 def get_manifest(logging_dir: str):
@@ -116,7 +149,7 @@ def normal_path(path):
 
 
 def convert_pdf(pdf_path):
-    img_uuid = uuid.uuid4()
+    img_uuid = f"img_{uuid.uuid4()}"
     img_fpath = os.path.join(IMG_PATH, f"{img_uuid}.jpeg")
     if not os.path.isfile(img_fpath):
         doc = fitz.open(pdf_path)
@@ -151,16 +184,31 @@ def get_id_from_title_date(title: str, date: str, prefix: str = None):
         return "_".join([title, date])
 
 
-def create_bs_scroll_item(title: str, body: str, date: str, figs):
-    main_elem = builder.BUTTON(
+def get_id_from_browser_data(browser_data: dict, prefix: str):
+    if prefix is not None:
+        return "_".join([prefix, browser_data["uuid"]])
+    else:
+        return browser_data["uuid"]
+
+
+def create_bs_scroll_item(
+    title: str, body: str, date: str, figs, browser_data: dict = None
+):
+
+    main_elem: HtmlElement = builder.BUTTON(
         **{
-            "id": get_id_from_title_date(title, date, SCROLL_ID_PREFIX),
+            "id": get_id_from_browser_data(browser_data, SCROLL_ID_PREFIX),
             "data-bs-toggle": "collapse",
-            "data-bs-target": f"#{get_id_from_title_date(title, date,DISPLAY_ID_PREFIX)}",
+            "data-bs-target": f"#{get_id_from_browser_data(browser_data,DISPLAY_ID_PREFIX)}",
             "class": "list-group-item list-group-item-action py-3 lh-sm",
-            "aria-controls": get_id_from_title_date(title, date, SCROLL_ID_PREFIX),
+            "aria-controls": get_id_from_browser_data(browser_data, SCROLL_ID_PREFIX),
         }
     )
+
+    if browser_data is not None:
+        project = browser_data["project"]
+        project_class = get_project_class(project)
+        main_elem.classes.add(project_class)
 
     # a_elem.a.set("aria-current","true")
 
@@ -195,7 +243,7 @@ def create_bs_scroll_item(title: str, body: str, date: str, figs):
     return main_elem
 
 
-def get_fragment(filename: str):
+def get_fragment(filename: str) -> HtmlElement:
     raw_html = io.open(
         os.path.join(FRAGMENT_PATH, f"{filename}.html"), "r", encoding="utf8"
     ).read()
@@ -358,6 +406,20 @@ def load_manifest(dirname):
     )
 
 
+def get_browser_data(experiment_path):
+    browser_data = load_manifest(
+        os.path.join(
+            experiment_path,
+            constants.BROWSER_FOLDER,
+            constants.LOGGING_DIR,
+            constants.MANIFEST_FILENAME + ".json",
+        )
+    )
+    if "project" not in browser_data.keys():
+        browser_data["project"] = constants.OTHER_PROJECT
+    return browser_data
+
+
 def get_tag_div(taglist: list):
     if not len(taglist):
         return None
@@ -368,24 +430,13 @@ def get_tag_div(taglist: list):
     return container_div
 
 
-def populate_from_data(experiment_path, title: str, date: str):
+def populate_display_page(experiment_path, browser_data: dict = None):
     title_text = os.path.basename(experiment_path)
     has_browser_data = False
-    if constants.BROWSER_FOLDER in os.listdir(experiment_path):
-        browser_manifest = load_manifest(
-            os.path.join(
-                experiment_path,
-                constants.BROWSER_FOLDER,
-                constants.LOGGING_DIR,
-                constants.MANIFEST_FILENAME + ".json",
-            )
-        )
-        title_text = browser_manifest["display_name"]
-        taglist = browser_manifest["tag_list"]
-        if "project" in browser_manifest.keys():
-            project = browser_manifest["project"]
-        else:
-            project = constants.OTHER_PROJECT
+    if browser_data is not None:
+        title_text = browser_data["display_name"]
+        taglist = browser_data["tag_list"]
+        project = browser_data["project"]
         has_browser_data = True
 
     main_div = builder.DIV(
@@ -406,7 +457,7 @@ def populate_from_data(experiment_path, title: str, date: str):
         if tag_div is not None:
             main_div.append(tag_div)
 
-    main_div.set("id", get_id_from_title_date(title, date, DISPLAY_ID_PREFIX))
+    main_div.set("id", get_id_from_browser_data(browser_data, DISPLAY_ID_PREFIX))
     for run in os.listdir(experiment_path):
         if not run.startswith("__"):
             run_div = populate_run(experiment_path, run)
@@ -430,9 +481,8 @@ def save_webpage_manifest(jobj: dict):
 
 
 def add_to_browser(date, experiment, experiment_path):
-    self_id = get_id_from_title_date(
-        title=experiment, date=date, prefix=DISPLAY_ID_PREFIX
-    )
+    browser_data = get_browser_data(experiment_path=experiment_path)
+    self_id = get_id_from_browser_data(browser_data, prefix=DISPLAY_ID_PREFIX)
     html, exp_scroll_list, display_container_div = get_scroll_list_and_display()
     try:
         experiments_id = [
@@ -446,7 +496,8 @@ def add_to_browser(date, experiment, experiment_path):
         )
         save_html(html)
     else:
-        raise ValueError("adding an experiment that's already there?")
+        print(f"Experiment id: {self_id}")
+        print("Experiment already present, skipping (or uuid collision?)")
 
 
 def get_scroll_list_and_display():
@@ -468,7 +519,10 @@ def rebuild_browser(populate: bool = True):
         **{"class": "scrollarea container", "id": DISPLAY_DIV_ID}
     )
     main_div.set("class", "d-flex flex-nowrap")
-    scroller = create_scroller()
+    scroller: HtmlElement = create_scroller()
+    scroller.findall(f""".//*[@id='{SCROLL_TITLE_ID}']""")[0].append(
+        get_project_dropdown()
+    )
     exp_scroll_list = scroller.findall(f""".//*[@id='{SCROLL_LIST_ID}']""")[0]
     data_path, calendar = get_calendar()
     calendar = sorted(filter(lambda x: not x.startswith("_"), calendar))
@@ -514,7 +568,8 @@ def append_scroll_and_display(
     display_container_div, exp_scroll_list, date, experiment, experiment_path
 ):
     figs = build_n_figs_div(experiment_path, height="64px", width="64px", n_img=3)
-    experiment_display_div = populate_from_data(experiment_path, experiment, date)
+    browser_data = get_browser_data(experiment_path=experiment_path)
+    experiment_display_div = populate_display_page(experiment_path, browser_data)
     display_container_div.append(experiment_display_div)
 
     manifest = get_manifest(
@@ -522,7 +577,7 @@ def append_scroll_and_display(
     )
 
     scroll_item = create_bs_scroll_item(
-        experiment, pretty_manifest(manifest), date, figs
+        experiment, pretty_manifest(manifest), date, figs, browser_data
     )
     exp_scroll_list.append(scroll_item)
 
@@ -581,6 +636,6 @@ def check_img_folder(refresh: bool = False, bypass_prompts: bool = False):
 
 if __name__ == "__main__":
     print("Processing images")
-    check_img_folder(False, True)
+    check_img_folder(True, True)
     print("Rebuilding browser")
-    rebuild_browser(False)
+    rebuild_browser(True)

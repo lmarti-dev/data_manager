@@ -203,6 +203,9 @@ def delete_experiments_without_data(data_folder: str):
     ewd = get_experiments_without_data(data_folder)
     print("This would delete the following folders:")
     decision = ""
+    if all([len(list(ewd[k])) == 0 for k in ewd.keys()]):
+        print("No folders to delete")
+        return
     for k in ewd.keys():
         for item in ewd[k]:
             print(k, item)
