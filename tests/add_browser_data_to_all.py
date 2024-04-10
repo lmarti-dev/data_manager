@@ -35,10 +35,14 @@ for date in os.listdir(data_path):
                     os.path.join(data_path, date, experiment_name)
                 )
                 if "uuid" not in browser_data.keys():
-                    browser_data["uuid"] = f"project_{uuid.uuid4()}"
+                    browser_data["uuid"] = f"experiment_{uuid.uuid4()}"
                 elif "uuid" in browser_data.keys():
                     if isinstance(browser_data["uuid"], (tuple, list)):
-                        browser_data["uuid"] = f"project_{uuid.uuid4()}"
+                        browser_data["uuid"] = f"experiment_{uuid.uuid4()}"
+                    elif "project_" in browser_data["uuid"]:
+                        browser_data["uuid"] = browser_data["uuid"].replace(
+                            "project_", "experiment_"
+                        )
                 if browser_data["project"] == "fermionic_cooling":
                     browser_data["project"] = "fermionic cooling"
                 if "display_name" not in browser_data.keys():

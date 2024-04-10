@@ -167,9 +167,21 @@ class ExperimentDataManager:
 
     def add_myself(self):
         try:
-            return add_to_browser(
-                self.experiment_date, self.experiment_name, self.experiment_path
-            )
+            if hasattr(sys, "last_value"):
+                last_exception = sys.last_value
+                exception_raised = isinstance(last_exception, Exception)
+                if not exception_raised:
+                    return add_to_browser(
+                        self.experiment_date, self.experiment_name, self.experiment_path
+                    )
+                else:
+                    raise RuntimeError(
+                        f"Exception raised, not adding experiment {self.experiment_name} to the browser"
+                    )
+            else:
+                return add_to_browser(
+                    self.experiment_date, self.experiment_name, self.experiment_path
+                )
         except Exception:
             pass
 

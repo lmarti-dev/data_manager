@@ -13,6 +13,9 @@ from fau_colors import colors_dark
 from json_extender import ExtendedJSONDecoder, ExtendedJSONEncoder
 from matplotlib import cycler
 import shutil
+from typing import Iterable
+
+DELETE_DAY_COMMAND = "__DELETE_DAY"
 
 
 def get_most_recent_timestamped_files(files: list):
@@ -169,6 +172,16 @@ def is_date(date):
         return False
 
 
+def get_all_experiment_paths() -> Iterable:
+    data_path = read_data_path()
+    paths = []
+    for date in os.listdir(data_path):
+        if is_date(date):
+            for experiment_name in os.listdir(os.path.join(data_path, date)):
+                paths.append(os.path.join(data_path, date, experiment_name))
+    return paths
+
+
 def get_experiments_without_data(data_folder: str):
     experiments_without_data = {}
     days = os.listdir(data_folder)
@@ -177,7 +190,7 @@ def get_experiments_without_data(data_folder: str):
         if is_date(day):
             experiments = os.listdir(os.path.join(data_folder, day))
             if experiments == []:
-                experiments_without_data[day] = day
+                experiments_without_data[day] = [DELETE_DAY_COMMAND]
             else:
                 for experiment in experiments:
                     has_data = False
@@ -218,7 +231,10 @@ def delete_experiments_without_data(data_folder: str):
         print("Deleting")
         for k in ewd.keys():
             for item in ewd[k]:
-                fpath = os.path.join(data_folder, k, item)
+                if item == DELETE_DAY_COMMAND:
+                    fpath = os.path.join(data_folder, k)
+                else:
+                    fpath = os.path.join(data_folder, k, item)
                 print(f"Deleting: {fpath}")
                 shutil.rmtree(fpath)
 

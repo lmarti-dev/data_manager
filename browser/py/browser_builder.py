@@ -14,7 +14,12 @@ from json_extender import (
 
 # bs4 is for reading documents, not creating them.
 from lxml.html import HtmlElement, builder, fromstring, tostring
-from utils import read_data_path, get_project_list
+from utils import (
+    read_data_path,
+    get_project_list,
+    delete_experiments_without_data,
+    get_all_experiment_paths,
+)
 
 HOME = os.path.dirname(__file__)
 HTML_FPATH = os.path.join(HOME, "../index.html")
@@ -29,8 +34,8 @@ DISPLAY_DIV_ID = "exp-display-div"
 WEBPAGE_MANIFEST_DIRNAME = os.path.join(HOME, "../files/")
 
 
-DISPLAY_ID_PREFIX = "expe"
-SCROLL_ID_PREFIX = "scroll"
+DISPLAY_ID_PREFIX = "display_item"
+SCROLL_ID_PREFIX = "scroll_item"
 PROJECT_SELECT_DROPDOWN_ID = "project-select-dropdown"
 PROJECT_SELECT_ACTIVE_TEXT_ID = "project-select-active-text"
 
@@ -395,10 +400,10 @@ def get_folder_link(href: str):
     )
 
 
-def load_manifest(dirname):
+def load_json(fpath: str):
     return json.loads(
         io.open(
-            dirname,
+            fpath,
             "r",
             encoding="utf8",
         ).read(),
@@ -407,7 +412,7 @@ def load_manifest(dirname):
 
 
 def get_browser_data(experiment_path):
-    browser_data = load_manifest(
+    browser_data = load_json(
         os.path.join(
             experiment_path,
             constants.BROWSER_FOLDER,
@@ -508,7 +513,7 @@ def get_scroll_list_and_display():
     return html, scroll_list, display_conainer_div
 
 
-def load_html():
+def load_html() -> HtmlElement:
     html_str = io.open(HTML_FPATH, "r", encoding="utf8").read()
     return fromstring(html_str)
 
@@ -595,7 +600,7 @@ def get_latest_timestamp(experiment, experiment_path):
 
 
 def load_webpage_manifest():
-    return load_manifest(WEBPAGE_MANIFEST_DIRNAME)
+    return load_json(WEBPAGE_MANIFEST_DIRNAME)
 
 
 def build_webpage_manifest():
@@ -634,8 +639,47 @@ def check_img_folder(refresh: bool = False, bypass_prompts: bool = False):
                     os.remove(fpath)
 
 
+def build_uuid_dict():
+    uuids = {}
+    experiment_paths = get_all_experiment_paths()
+    for experiment_path in experiment_paths:
+        dirname = os.path.join(
+            experiment_path,
+            constants.BROWSER_FOLDER,
+            "logging/manifest.json",
+        )
+        jobj = load_json(dirname)
+        uuids[jobj["uuid"]] = experiment_path
+    return uuids
+
+
+def refresh_browser():
+    delete_experiments_without_data(read_data_path())
+    html = load_html()
+    experiments_browser_uuids = [
+        y.get("id").replace(SCROLL_ID_PREFIX + "_", "")
+        for y in html.findall(".//*[@id]")
+        if SCROLL_ID_PREFIX + "_" in y.get("id")
+    ]
+    data_uuids = build_uuid_dict()
+    for browser_uuid in experiments_browser_uuids:
+        if browser_uuid not in data_uuids.keys():
+            scroll_toremove = html.findall(
+                f".//*[@id='{SCROLL_ID_PREFIX}_{browser_uuid}']"
+            )[0]
+            scroll_toremove.getparent().remove(scroll_toremove)
+            display_toremove = html.findall(
+                f".//*[@id='{DISPLAY_ID_PREFIX}_{browser_uuid}']"
+            )[0]
+            display_toremove.getparent().remove(display_toremove)
+            print(f"Removed {browser_uuid} from browser")
+    save_html(html)
+
+
 if __name__ == "__main__":
-    print("Processing images")
-    check_img_folder(True, True)
-    print("Rebuilding browser")
-    rebuild_browser(True)
+    # print("Processing images")
+    # check_img_folder(True, True)
+    # print("Rebuilding browser")
+    # rebuild_browser(True)
+    print("Refreshing browser")
+    refresh_browser()
