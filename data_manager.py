@@ -210,6 +210,7 @@ class ExperimentDataManager:
                 filename="print_output",
                 extension=".log",
                 subfolder=constants.LOGGING_DIR,
+                add_timestamp=False,
             )
             targets = logging.StreamHandler(sys.stdout), logging.FileHandler(
                 print_output_fpath
