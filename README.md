@@ -4,13 +4,23 @@ This small library is a silly but lovable set of scripts/classes that help with 
 
 Usage is simple:
 
-```
+```python
+import matplotlib.pyplot as plt
 from data_manager import ExperimentDataManager
 
+# declare edm
 edm = ExperimentDataManager(experiment_name="experiment")
 
-json_object={"data":1}
+# quick dump of variables
+edm.var_dump(a=1,b="a")
 
+# save json
+json_object={"data":1}
 edm.save_dict(json_object)
+
+# save figure
+fig,ax = plt.subplots()
+ax.plot([1,2],[1,2])
+edm.save_figure(fig)
 
 ```
