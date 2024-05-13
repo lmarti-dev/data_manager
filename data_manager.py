@@ -302,13 +302,24 @@ class ExperimentDataManager:
     def clock(self):
         return datetime.today().strftime(constants.CLOCK_FORMAT)
 
-    def change_filename_if_double(self, filename, dirname):
-        folders = os.listdir(dirname)
+    def change_filename_if_double(self, filename: str, dirname: str):
+        if "." in filename:
+            filename = filename.split(".")[0]
+            extension = filename.split(".")[1]
+            exisiting_files = [
+                f.split(".")[0]
+                for f in os.listdir(dirname)
+                if f.split(".")[1] == extension
+            ]
+        else:
+            extension = None
+            exisiting_files = [f.split(".")[0] for f in os.listdir(dirname)]
+
         original_filename = filename
         trial_filename = filename
         n = 1
         n_tries = 0
-        while trial_filename in folders:
+        while trial_filename in exisiting_files:
             trial_filename = original_filename + "_" + f"{n:0{self.zero_padding_len}}"
             n += 1
             n_tries += 1
@@ -398,6 +409,7 @@ class ExperimentDataManager:
         extension: str = ".json",
         subfolder: os.PathLike = None,
         add_timestamp: bool = True,
+        overwrite: bool = False,
     ):
         # get automatic full path to save file
         # check for subfolder
@@ -435,12 +447,15 @@ class ExperimentDataManager:
             if "." in filename:
                 filename = os.path.splitext(os.path.basename(filename))[0]
 
-        # check for similar filename and append 000x at end if true
-        filename = self.change_filename_if_double(filename=filename, dirname=dirname)
-
         # time stamp it
         if add_timestamp:
             filename = filename + "_" + self.now
+
+        # check for similar filename and append 000x at end if true
+        if not overwrite:
+            filename = self.change_filename_if_double(
+                filename=filename, dirname=dirname
+            )
 
         # put everything together
         current_run_savepath = os.path.join(dirname, filename + extension)
@@ -469,6 +484,7 @@ class ExperimentDataManager:
             timestamp_dict(jobj)
 
             print("saving object called {}".format(os.path.basename(fpath)))
+
             jobj_str = extended_dumps(jobj)
             fstream = io.open(fpath, "w+")
             fstream.write(jobj_str)
