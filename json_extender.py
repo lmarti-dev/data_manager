@@ -45,9 +45,10 @@ class ExtendedJSONEncoder(JSONEncoder):
         elif isinstance(obj, (OF_TYPES, sympy.Symbol)):
             return {TYPE_FLAG: obj.__class__.__name__, ARGS_FLAG: str(obj)}
 
-        elif isinstance(obj, np.float128):
+        elif isinstance(obj, np.longdouble):
+            # welp
             return {
-                TYPE_FLAG: "np.float128",
+                TYPE_FLAG: "np.longdouble",
                 ARGS_FLAG: float(obj),
             }
         return super().default(obj)
