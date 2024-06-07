@@ -191,6 +191,16 @@ class ExperimentDataManager:
         taglist = sorted(set(re.split(r"[,;\.] ?", tags)))
         return taglist
 
+    def check_run_number(self, run_number: int):
+        if not isinstance(run_number, int):
+            raise TypeError(
+                f"expected run_number to be an int, got: {type(run_number)}"
+            )
+        if run_number == -1:
+            return self.run_number
+        else:
+            return run_number
+
     def setup_logging(self, notes: str):
         if self.save_logging_files and not self.dry_run:
             self.save_manifest(notes=notes)
@@ -250,9 +260,13 @@ class ExperimentDataManager:
             self.setup_logging(notes=notes)
             print("Run saving in folder: {}".format(self.current_run_dir))
 
+    def data_dir(self, run_number: int = -1):
+        run_number = self.check_run_number(run_number)
+        return os.path.join(self.saving_dirname(run_number), constants.DATA_DIR)
+
     @property
     def current_data_dir(self) -> str:
-        return os.path.join(self.current_saving_dirname, constants.DATA_DIR)
+        return self.data_dir()
 
     @property
     def current_logging_dir(self) -> str:
@@ -262,15 +276,33 @@ class ExperimentDataManager:
     def current_fig_dir(self) -> str:
         return os.path.join(self.current_saving_dirname, constants.FIG_DIR)
 
+    def run_dir(self, run_number: int = -1) -> str:
+        run_number = self.check_run_number(run_number)
+        return constants.RUN_DIR + "_" + f"{run_number:0{self.zero_padding_len}}"
+
+    @property
+    def run_dirs(self) -> str:
+        runs = []
+        for run_number in range(0, self.run_number + 1):
+            runs.append(
+                constants.RUN_DIR + "_" + f"{run_number:0{self.zero_padding_len}}"
+            )
+        return runs
+
     @property
     def current_run_dir(self) -> str:
         if not self.use_runs:
             return ""
-        return constants.RUN_DIR + "_" + f"{self.run_number:0{self.zero_padding_len}}"
+        return self.run_dir(self.run_number)
 
-    @property
-    def current_saving_dirname(self):
-        # this is where you save current stuff
+    def saved_dicts(self, run_number: int = -1) -> list:
+        run_number = self.check_run_number(run_number)
+        return os.listdir(
+            os.path.join(self.saving_dirname(run_number), constants.DATA_DIR)
+        )
+
+    def saving_dirname(self, run_number: int = -1):
+        run_number = self.check_run_number(run_number)
         if self.use_calendar:
             date_folder = self.experiment_date
         else:
@@ -279,8 +311,18 @@ class ExperimentDataManager:
             self.data_folder,
             date_folder,
             self.experiment_name,
-            self.current_run_dir,
+            self.run_dir(run_number=run_number),
         )
+
+    @property
+    def current_saving_dirname(self) -> str:
+        # this is where you save current stuff
+        return self.saving_dirname(self.run_number)
+
+    def load_saved_dict(self, dict_filename: str, run_number: int = -1) -> dict:
+        run_number = self.check_run_number(run_number)
+        fpath = os.path.join(self.data_dir(run_number), dict_filename)
+        return json.load(io.open(fpath, mode="rb"), cls=ExtendedJSONDecoder)
 
     @property
     def load_last_saved_data_file(self) -> str:
