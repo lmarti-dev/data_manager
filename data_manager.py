@@ -31,8 +31,8 @@ import __main__
 class ExperimentDataManager:
     def __init__(
         self,
-        *,
         experiment_name: str = None,
+        *,
         data_folder: os.PathLike = None,
         file_default_name: str = None,
         overwrite_experiment: bool = False,
@@ -588,6 +588,8 @@ class ExperimentDataManager:
                 figsize = (figsize[0] / 2, figsize[1] / 2)
             elif fig_shape == "page-wide":
                 figsize = (figsize[0] * 2, figsize[1])
+            elif fig_shape == "double-wide":
+                figsize = (figsize[0] * 2, figsize[1] * 2)
             fig.set_size_inches(figsize[0], figsize[1])
             fig.savefig(
                 figure_fpath, format="pdf", bbox_inches=bbox_inches, pad_inches=0.01
