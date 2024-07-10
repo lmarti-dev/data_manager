@@ -8,9 +8,9 @@ from datetime import datetime
 import __main__
 import matplotlib.pyplot as plt
 import numpy as np
-import constants
+import data_manager.constants as constants
 from fau_colors import colors_dark
-from json_extender import ExtendedJSONDecoder, ExtendedJSONEncoder
+from data_manager.json_extender import ExtendedJSONDecoder, ExtendedJSONEncoder
 from matplotlib import cycler
 import shutil
 from typing import Iterable
@@ -271,3 +271,8 @@ def get_project_list():
 def read_data_path():
     config = get_settings()
     return config["paths"]["data_path"]
+
+
+def read_browser_path():
+    config = get_settings()
+    return config["paths"]["html_browser_path"]

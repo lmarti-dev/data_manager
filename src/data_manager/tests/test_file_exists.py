@@ -1,4 +1,4 @@
-from data_manager import ExperimentDataManager
+from data_manager.data_manager import ExperimentDataManager
 import os
 
 data_folder = os.path.dirname(__file__) + "/test_data_folder"

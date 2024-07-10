@@ -1,5 +1,5 @@
-from data_manager import ExperimentDataManager
-from utils import name_from_list
+from data_manager.data_manager import ExperimentDataManager
+from data_manager.utils import name_from_list
 import matplotlib.pyplot as plt
 import numpy as np
 

@@ -9,12 +9,12 @@ import sys
 import uuid
 from datetime import datetime
 
-import constants
+import data_manager.constants as constants
 import matplotlib.pyplot as plt
 import numpy as np
-from browser.py.browser_builder import add_to_browser
-from json_extender import ExtendedJSONDecoder
-from utils import (
+from data_manager.browser.py.browser_builder import add_to_browser
+from data_manager.json_extender import ExtendedJSONDecoder
+from data_manager.utils import (
     dirname_has_substring,
     extended_dumps,
     get_figure_dict,

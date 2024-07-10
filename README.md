@@ -24,3 +24,5 @@ ax.plot([1,2],[1,2])
 edm.save_figure(fig)
 
 ```
+
+The code also generates an .html page to conveniently browse results.

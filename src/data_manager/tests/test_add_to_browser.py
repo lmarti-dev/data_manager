@@ -1,4 +1,4 @@
-from data_manager import ExperimentDataManager
+from data_manager.data_manager import ExperimentDataManager
 import matplotlib.pyplot as plt
 import numpy as np
 

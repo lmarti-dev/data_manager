@@ -1,5 +1,5 @@
-from data_manager import ExperimentDataManager
-from json_extender import ExtendedJSONDecoder
+from data_manager.data_manager import ExperimentDataManager
+from data_manager.json_extender import ExtendedJSONDecoder
 
 import json
 import os

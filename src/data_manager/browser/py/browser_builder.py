@@ -4,40 +4,71 @@ import os
 import re
 import uuid
 from datetime import datetime
+import shutil
 
-import constants
+import data_manager.constants as constants
 import fitz
-from json_extender import (
+from data_manager.json_extender import (
     ExtendedJSONDecoder,
     ExtendedJSONEncoder,
 )
 
 # bs4 is for reading documents, not creating them.
 from lxml.html import HtmlElement, builder, fromstring, tostring
-from utils import (
+from data_manager.utils import (
     read_data_path,
+    read_browser_path,
     get_project_list,
     delete_experiments_without_data,
     get_all_experiment_paths,
 )
 
 HOME = os.path.dirname(__file__)
-HTML_FPATH = os.path.join(HOME, "../index.html")
+
+BROWSER_PATH = read_browser_path()
+
+
 FRAGMENT_PATH = os.path.join(HOME, "../fragments")
 
-IMG_PATH = os.path.join(HOME, "../img")
-FILES_PATH = os.path.join(HOME, "../files")
+HTML_FPATH = os.path.join(BROWSER_PATH, "index.html")
+IMG_PATH = os.path.join(BROWSER_PATH, "img/")
+
+
 SCROLL_LIST_ID = "exp-scroll-list"
 SCROLL_TITLE_ID = "scroller-title-container"
 DISPLAY_DIV_ID = "exp-display-div"
-
-WEBPAGE_MANIFEST_DIRNAME = os.path.join(HOME, "../files/")
-
-
 DISPLAY_ID_PREFIX = "display_item"
 SCROLL_ID_PREFIX = "scroll_item"
 PROJECT_SELECT_DROPDOWN_ID = "project-select-dropdown"
 PROJECT_SELECT_ACTIVE_TEXT_ID = "project-select-active-text"
+
+
+def setup_browser_folder():
+
+    print(f"Setting up {BROWSER_PATH}")
+    if not os.path.isdir(BROWSER_PATH):
+        os.makedirs(BROWSER_PATH)
+
+    css_path_in = os.path.join(HOME, "../css")
+    js_path_in = os.path.join(HOME, "../js")
+    files_path_in = os.path.join(HOME, "../files")
+
+    css_path_out = os.path.join(BROWSER_PATH, "css/")
+    js_path_out = os.path.join(BROWSER_PATH, "js/")
+    files_path_out = os.path.join(BROWSER_PATH, "files/")
+
+    dirs_to_copy = (
+        (css_path_in, css_path_out),
+        (js_path_in, js_path_out),
+        (files_path_in, files_path_out),
+    )
+
+    for fin, fout in dirs_to_copy:
+        if os.path.isdir(fout):
+            shutil.rmtree(fout)
+
+        print(f"Copying {fin} to {fout}")
+        shutil.copytree(src=fin, dst=fout)
 
 
 def get_badge(text: str, badge_type: str) -> HtmlElement:
@@ -477,14 +508,6 @@ def is_timestamp_newer(new: str, ref: str):
     return ts_new > ts_ref
 
 
-def save_webpage_manifest(jobj: dict):
-    fstream = io.open(WEBPAGE_MANIFEST_DIRNAME, "w+", encoding="utf8")
-    fstream.write(
-        json.dumps(jobj, indent=4, ensure_ascii=False, cls=ExtendedJSONEncoder)
-    )
-    fstream.close()
-
-
 def add_to_browser(date, experiment, experiment_path):
     browser_data = get_browser_data(experiment_path=experiment_path)
     self_id = get_id_from_browser_data(browser_data, prefix=DISPLAY_ID_PREFIX)
@@ -519,6 +542,7 @@ def load_html() -> HtmlElement:
 
 
 def rebuild_browser(populate: bool = True):
+    setup_browser_folder()
     main_div = fromstring("<div id='main'></div>")
     display_container_div = builder.DIV(
         **{"class": "scrollarea container", "id": DISPLAY_DIV_ID}
@@ -597,24 +621,6 @@ def get_latest_timestamp(experiment, experiment_path):
         return manifest["__timestamp"]
     else:
         raise KeyError(f"manifest of {experiment} has no timestamp")
-
-
-def load_webpage_manifest():
-    return load_json(WEBPAGE_MANIFEST_DIRNAME)
-
-
-def build_webpage_manifest():
-    jobj = {}
-    data_path, calendar = get_calendar()
-    calendar = sorted(filter(lambda x: not x.startswith("_"), calendar))
-    for date in calendar:
-        date_path = os.path.join(data_path, date)
-        experiments = os.listdir(date_path)
-        for experiment in experiments:
-            experiment_path = os.path.join(date_path, experiment)
-            jobj[experiment] = get_latest_timestamp(experiment, experiment_path)
-
-    save_webpage_manifest(jobj)
 
 
 def check_img_folder(refresh: bool = False, bypass_prompts: bool = False):
