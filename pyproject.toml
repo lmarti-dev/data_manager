@@ -20,3 +20,7 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/lmarti-dev/data_manager"
 Issues = "https://github.com/lmarti-dev/data_manager/issues"
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
