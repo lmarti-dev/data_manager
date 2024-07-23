@@ -630,7 +630,7 @@ class ExperimentDataManager:
                 figsize = (figsize[0] / 2, figsize[1] / 2)
             elif fig_shape == "page-wide":
                 figsize = (figsize[0] * 2, figsize[1])
-            elif fig_shape == "double-wide":
+            elif fig_shape == "double-size":
                 figsize = (figsize[0] * 2, figsize[1] * 2)
             fig.set_size_inches(figsize[0], figsize[1])
             fig.savefig(

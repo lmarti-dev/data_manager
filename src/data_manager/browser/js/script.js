@@ -25,8 +25,26 @@ async function main() {
         bind_click(projects[ind_proj])
     }
 
+
+
 };
 
+
+function ellipse_long_content() {
+
+    var max_length = 1000;
+    var i;
+    var divs = document.querySelectorAll('*:not(:has(*))');
+    for (i = 0; i < divs.length; i++) {
+        console.log(divs[i])
+        if (divs[i].innerHTML.length > max_length) {
+
+            divs[i].innerHTML = divs[i].innerHTML.substring(0, max_length) + "...";
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', (event) => {
+    ellipse_long_content()
     main()
 });
