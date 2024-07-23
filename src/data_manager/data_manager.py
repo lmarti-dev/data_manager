@@ -302,7 +302,11 @@ class ExperimentDataManager:
         )
 
     def saving_dirname(self, run_number: int = -1):
-        run_number = self.check_run_number(run_number)
+        if self.use_runs:
+            run_number = self.check_run_number(run_number)
+            run_dir = self.run_dir(run_number=run_number)
+        else:
+            run_dir = ""
         if self.use_calendar:
             date_folder = self.experiment_date
         else:
@@ -311,7 +315,7 @@ class ExperimentDataManager:
             self.data_folder,
             date_folder,
             self.experiment_name,
-            self.run_dir(run_number=run_number),
+            run_dir,
         )
 
     @property
@@ -511,6 +515,7 @@ class ExperimentDataManager:
         add_timestamp: bool = False,
         return_fpath: bool = False,
         dirname: str = None,
+        overwrite: bool = False,
     ):
         if not self.dry_run:
             fpath = self.get_savepath(
@@ -519,6 +524,7 @@ class ExperimentDataManager:
                 extension=".json",
                 subfolder=category,
                 add_timestamp=add_timestamp,
+                overwrite=overwrite,
             )
             # if list, turn into dict to timestamp
             if not isinstance(jobj, dict):
