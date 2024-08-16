@@ -36,7 +36,6 @@ function ellipse_long_content() {
     var i;
     var divs = document.querySelectorAll('*:not(:has(*))');
     for (i = 0; i < divs.length; i++) {
-        console.log(divs[i])
         if (divs[i].innerHTML.length > max_length) {
 
             divs[i].innerHTML = divs[i].innerHTML.substring(0, max_length) + "...";

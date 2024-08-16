@@ -72,7 +72,7 @@ def get_project_class(project):
 
 def get_project_dropdown():
     projects: list = get_project_list()
-    all_projects = ["all projects"] + projects + [constants.OTHER_PROJECT + " project"]
+    all_projects = ["all projects"] + projects + [constants.OTHER_PROJECT]
     dropdown = get_fragment("dropdown")
     dropdown.classes.add("mx-3")
 
@@ -520,12 +520,17 @@ def build_base():
 
     js_dir = os.path.join(HOME, "browser/js")
     for script in os.listdir(js_dir):
-        script_element = builder.SCRIPT(**{"src": os.path.join(js_dir, script)})
+        script_element = builder.SCRIPT(
+            **{"src": (f"file://{normal_path(os.path.join(js_dir, script))}")}
+        )
         out_head.append(script_element)
     css_dir = os.path.join(HOME, "browser/css")
-    for styler in css_dir:
+    for style_file in os.listdir(css_dir):
         style_element = builder.LINK(
-            **{"rel": "stylesheet", "href": os.path.join(css_dir, styler)}
+            **{
+                "rel": "stylesheet",
+                "href": f"file://{normal_path(os.path.join(css_dir, style_file))}",
+            }
         )
         out_head.append(style_element)
     return out_html
@@ -678,7 +683,7 @@ def refresh_browser():
 if __name__ == "__main__":
     # print("Processing images")
     # check_img_folder(True, True)
-    # print("Rebuilding browser")
-    # rebuild_browser(True)
-    print("Refreshing browser")
-    refresh_browser()
+    print("Rebuilding browser")
+    rebuild_browser(False)
+    # print("Refreshing browser")
+    # refresh_browser()

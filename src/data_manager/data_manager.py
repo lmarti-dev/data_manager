@@ -12,7 +12,7 @@ from datetime import datetime
 import data_manager.constants as constants
 import matplotlib.pyplot as plt
 import numpy as np
-from data_manager.browser_builder import add_to_browser, rebuild_browser
+from data_manager.browser_builder import add_to_browser
 from data_manager.json_extender import ExtendedJSONDecoder
 from data_manager.utils import (
     dirname_has_substring,
@@ -23,7 +23,6 @@ from data_manager.utils import (
     normalize_str,
     read_data_path,
     timestamp_dict,
-    init_settings,
 )
 
 import __main__
