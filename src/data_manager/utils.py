@@ -15,7 +15,7 @@ from typing import Iterable
 
 DELETE_DAY_COMMAND = "__DELETE_DAY"
 HOME = os.path.dirname(__file__)
-BROWSER_DATA_PATH = os.path.join(HOME, "/browser")
+BROWSER_DATA_PATH = os.path.join(HOME, "browser")
 
 
 def setup_browser_folder():
@@ -26,9 +26,9 @@ def setup_browser_folder():
     if not os.path.isdir(browser_path):
         os.makedirs(browser_path)
 
-    css_path_in = os.path.join(BROWSER_DATA_PATH, "/css")
-    js_path_in = os.path.join(BROWSER_DATA_PATH, "/js")
-    files_path_in = os.path.join(BROWSER_DATA_PATH, "/files")
+    css_path_in = os.path.join(BROWSER_DATA_PATH, "css/")
+    js_path_in = os.path.join(BROWSER_DATA_PATH, "js/")
+    files_path_in = os.path.join(BROWSER_DATA_PATH, "files/")
 
     css_path_out = os.path.join(browser_path, "css/")
     js_path_out = os.path.join(browser_path, "js/")
@@ -54,15 +54,15 @@ def init_settings(
     HOME = os.path.dirname(__file__)
 
     config = get_settings_file("settings_example.ini")
-    config["paths"]["data_path"] = os.path.join(data_dirname, "/data")
+    config["paths"]["data_path"] = os.path.join(data_dirname, "data")
     config["paths"]["html_browser_path"] = os.path.join(
-        html_browser_dirname, "data_browser"
+        html_browser_dirname, "data_browser/"
     )
     config["projects"]["project_list"] = initial_projects
 
     filepath = os.path.join(HOME, "settings.ini")
     settings_file = io.open(filepath, "w+", encoding="utf8")
-    settings_file.write(config)
+    config.write(settings_file)
     settings_file.close()
     print(f"Wrote initial config to f{filepath}")
 
@@ -312,7 +312,10 @@ def get_settings():
 
 def get_project_list():
     config = get_settings()
-    return json.loads(config["projects"]["project_list"])
+    project_list = config["projects"]["project_list"]
+    # absolute mad stuff by json
+    project_list = project_list.replace("'", '"')
+    return json.loads(project_list)
 
 
 def read_data_path():
