@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0","matplotlib>=3.8.3","PyMuPDF>=1.23.21","sympy>=1.11.1","openfermion>=1.6.0","numpy>=1.24.3","lxml>=5.1.0","cirq_core>=1.3.0"]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -17,6 +17,8 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+dependencies =["matplotlib>=3.8.3","PyMuPDF>=1.23.21","sympy>=1.11.1","openfermion>=1.6.0","numpy>=1.24.3","lxml>=5.1.0","cirq_core>=1.3.0"]
+
 [project.urls]
 Homepage = "https://github.com/lmarti-dev/data_manager"
 Issues = "https://github.com/lmarti-dev/data_manager/issues"
@@ -24,3 +26,4 @@ Issues = "https://github.com/lmarti-dev/data_manager/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
