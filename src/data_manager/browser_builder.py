@@ -27,13 +27,9 @@ from data_manager.utils import (
 
 HOME = os.path.dirname(__file__)
 
-BROWSER_PATH = read_browser_path()
-
 FRAGMENT_PATH = os.path.join(HOME, "./browser/fragments")
-
-HTML_FPATH = os.path.join(BROWSER_PATH, "index.html")
-IMG_PATH = os.path.join(BROWSER_PATH, "img/")
-
+HTML_FILENAME = "index.html"
+IMG_DIR = "img/"
 
 SCROLL_LIST_ID = "exp-scroll-list"
 SCROLL_TITLE_ID = "scroller-title-container"
@@ -159,7 +155,9 @@ def normal_path(path):
 
 def convert_pdf(pdf_path):
     img_uuid = f"img_{uuid.uuid4()}"
-    img_fpath = os.path.join(IMG_PATH, f"{img_uuid}.jpeg")
+    img_fpath = os.path.join(
+        os.path.join(read_browser_path(), IMG_DIR), f"{img_uuid}.jpeg"
+    )
     if not os.path.isfile(img_fpath):
         doc = fitz.open(pdf_path)
         page = doc.load_page(0)
@@ -510,7 +508,9 @@ def get_scroll_list_and_display():
 
 
 def load_html() -> HtmlElement:
-    html_str = io.open(HTML_FPATH, "r", encoding="utf8").read()
+    html_str = io.open(
+        os.path.join(read_browser_path(), HTML_FILENAME), "r", encoding="utf8"
+    ).read()
     return fromstring(html_str)
 
 
@@ -555,10 +555,12 @@ def rebuild_browser(populate: bool = True):
     out_body.append(main_div)
     save_html(out_html)
 
+    print(f"Created data browser at {os.path.join(read_browser_path(), HTML_FILENAME)}")
+
 
 def save_html(out_html):
     f_out = io.open(
-        HTML_FPATH,
+        os.path.join(read_browser_path(), HTML_FILENAME),
         "wb+",
     )
     f_out.write(b"<!doctype html>\n")
@@ -597,12 +599,13 @@ def get_latest_timestamp(experiment, experiment_path):
 
 
 def check_img_folder(refresh: bool = False, bypass_prompts: bool = False):
-    if not os.path.isdir(IMG_PATH):
-        os.makedirs(IMG_PATH)
+    img_path = os.path.join(read_browser_path(), IMG_DIR)
+    if not os.path.isdir(img_path):
+        os.makedirs(img_path)
     if refresh:
         to_be_removed = []
-        for filename in os.listdir(IMG_PATH):
-            to_be_removed.append(os.path.join(IMG_PATH, filename))
+        for filename in os.listdir(img_path):
+            to_be_removed.append(os.path.join(img_path, filename))
         if not len(to_be_removed):
             print("No images to remove")
             return
