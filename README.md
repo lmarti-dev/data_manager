@@ -8,7 +8,7 @@ Clone this repository to a desired location, `cd` in the `data_manager` folder, 
 
 ## Setup
 
-You need to manually setup the package before being able to use it. After the installation, call `pip -m data_manager` and follow the instructions. You will be prompted to input paths for the general data folder and the browser, as well as project names to get started. This will create a `settings.ini` file, which can be modified later.
+You need to manually setup the package before being able to use it. After the installation, call `python -m data_manager` and follow the instructions. You will be prompted to input paths for the general data folder and the browser, as well as project names to get started. This will create a `settings.ini` file, which can be modified later.
 
 ## Usage
 
