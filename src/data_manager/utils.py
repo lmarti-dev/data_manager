@@ -19,33 +19,11 @@ BROWSER_DATA_PATH = os.path.join(HOME, "browser")
 
 
 def setup_browser_folder():
-
     browser_path = read_browser_path()
 
     print(f"Setting up {browser_path}")
     if not os.path.isdir(browser_path):
         os.makedirs(browser_path)
-
-    css_path_in = os.path.join(BROWSER_DATA_PATH, "css/")
-    js_path_in = os.path.join(BROWSER_DATA_PATH, "js/")
-    files_path_in = os.path.join(BROWSER_DATA_PATH, "files/")
-
-    css_path_out = os.path.join(browser_path, "css/")
-    js_path_out = os.path.join(browser_path, "js/")
-    files_path_out = os.path.join(browser_path, "files/")
-
-    dirs_to_copy = (
-        (css_path_in, css_path_out),
-        (js_path_in, js_path_out),
-        (files_path_in, files_path_out),
-    )
-
-    for fin, fout in dirs_to_copy:
-        if os.path.isdir(fout):
-            shutil.rmtree(fout)
-
-        print(f"Copying {fin} to {fout}")
-        shutil.copytree(src=fin, dst=fout)
 
 
 def init_settings(

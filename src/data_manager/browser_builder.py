@@ -514,6 +514,23 @@ def load_html() -> HtmlElement:
     return fromstring(html_str)
 
 
+def build_base():
+    out_html = get_fragment("base")
+    out_head: HtmlElement = out_html.find("head")
+
+    js_dir = os.path.join(HOME, "browser/js")
+    for script in os.listdir(js_dir):
+        script_element = builder.SCRIPT(**{"src": os.path.join(js_dir, script)})
+        out_head.append(script_element)
+    css_dir = os.path.join(HOME, "browser/css")
+    for styler in css_dir:
+        style_element = builder.LINK(
+            **{"rel": "stylesheet", "href": os.path.join(css_dir, styler)}
+        )
+        out_head.append(style_element)
+    return out_html
+
+
 def rebuild_browser(populate: bool = True):
     setup_browser_folder()
     main_div = fromstring("<div id='main'></div>")
@@ -549,7 +566,7 @@ def rebuild_browser(populate: bool = True):
     main_div.append(scroller)
     main_div.append(get_b_divider("v"))
     main_div.append(display_container_div)
-    out_html = get_fragment("base")
+    out_html = build_base()
     out_body = out_html.find("body")
     out_body.text = None
     out_body.append(main_div)
