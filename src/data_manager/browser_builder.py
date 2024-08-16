@@ -21,14 +21,14 @@ from data_manager.utils import (
     get_project_list,
     delete_experiments_without_data,
     get_all_experiment_paths,
+    setup_browser_folder,
 )
 
 HOME = os.path.dirname(__file__)
 
 BROWSER_PATH = read_browser_path()
 
-
-FRAGMENT_PATH = os.path.join(HOME, "../fragments")
+FRAGMENT_PATH = os.path.join(HOME, "./browser/fragments")
 
 HTML_FPATH = os.path.join(BROWSER_PATH, "index.html")
 IMG_PATH = os.path.join(BROWSER_PATH, "img/")
@@ -41,34 +41,6 @@ DISPLAY_ID_PREFIX = "display_item"
 SCROLL_ID_PREFIX = "scroll_item"
 PROJECT_SELECT_DROPDOWN_ID = "project-select-dropdown"
 PROJECT_SELECT_ACTIVE_TEXT_ID = "project-select-active-text"
-
-
-def setup_browser_folder():
-
-    print(f"Setting up {BROWSER_PATH}")
-    if not os.path.isdir(BROWSER_PATH):
-        os.makedirs(BROWSER_PATH)
-
-    css_path_in = os.path.join(HOME, "../css")
-    js_path_in = os.path.join(HOME, "../js")
-    files_path_in = os.path.join(HOME, "../files")
-
-    css_path_out = os.path.join(BROWSER_PATH, "css/")
-    js_path_out = os.path.join(BROWSER_PATH, "js/")
-    files_path_out = os.path.join(BROWSER_PATH, "files/")
-
-    dirs_to_copy = (
-        (css_path_in, css_path_out),
-        (js_path_in, js_path_out),
-        (files_path_in, files_path_out),
-    )
-
-    for fin, fout in dirs_to_copy:
-        if os.path.isdir(fout):
-            shutil.rmtree(fout)
-
-        print(f"Copying {fin} to {fout}")
-        shutil.copytree(src=fin, dst=fout)
 
 
 def get_badge(text: str, badge_type: str) -> HtmlElement:

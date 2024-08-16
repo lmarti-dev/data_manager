@@ -16,6 +16,57 @@ import shutil
 from typing import Iterable
 
 DELETE_DAY_COMMAND = "__DELETE_DAY"
+HOME = os.path.dirname(__file__)
+BROWSER_DATA_PATH = os.path.join(HOME, "/browser")
+
+
+def setup_browser_folder():
+
+    browser_path = read_browser_path()
+
+    print(f"Setting up {browser_path}")
+    if not os.path.isdir(browser_path):
+        os.makedirs(browser_path)
+
+    css_path_in = os.path.join(BROWSER_DATA_PATH, "/css")
+    js_path_in = os.path.join(BROWSER_DATA_PATH, "/js")
+    files_path_in = os.path.join(BROWSER_DATA_PATH, "/files")
+
+    css_path_out = os.path.join(browser_path, "css/")
+    js_path_out = os.path.join(browser_path, "js/")
+    files_path_out = os.path.join(browser_path, "files/")
+
+    dirs_to_copy = (
+        (css_path_in, css_path_out),
+        (js_path_in, js_path_out),
+        (files_path_in, files_path_out),
+    )
+
+    for fin, fout in dirs_to_copy:
+        if os.path.isdir(fout):
+            shutil.rmtree(fout)
+
+        print(f"Copying {fin} to {fout}")
+        shutil.copytree(src=fin, dst=fout)
+
+
+def init_settings(
+    data_dirname: str, html_browser_dirname: str, initial_projects: list[str]
+):
+    HOME = os.path.dirname(__file__)
+
+    config = get_settings_file("settings_example.ini")
+    config["paths"]["data_path"] = os.path.join(data_dirname, "/data")
+    config["paths"]["html_browser_path"] = os.path.join(
+        html_browser_dirname, "data_browser"
+    )
+    config["projects"]["project_list"] = initial_projects
+
+    filepath = os.path.join(HOME, "settings.ini")
+    settings_file = io.open(filepath, "w+", encoding="utf8")
+    settings_file.write(config)
+    settings_file.close()
+    print(f"Wrote initial config to f{filepath}")
 
 
 def get_most_recent_timestamped_files(files: list):
@@ -251,16 +302,18 @@ def dirname_has_substring(dirname: str, substr: str, return_last: bool = True):
         raise ValueError(f"{substr} not in {dirname}")
 
 
-def get_settings():
-    fpath = os.path.join(os.path.dirname(__file__), constants.SETTINGS_FILENAME)
+def get_settings_file(filename: str):
+    fpath = os.path.join(os.path.dirname(__file__), filename)
     if os.path.isfile(fpath):
         config = configparser.ConfigParser()
-        config.read(
-            os.path.join(os.path.dirname(__file__), constants.SETTINGS_FILENAME)
-        )
+        config.read(os.path.join(os.path.dirname(__file__), filename))
         return config
     else:
-        raise FileNotFoundError("settings.ini doesn't exist")
+        raise FileNotFoundError(f"{filename} doesn't exist")
+
+
+def get_settings():
+    return get_settings_file(filename=constants.SETTINGS_FILENAME)
 
 
 def get_project_list():

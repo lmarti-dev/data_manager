@@ -4,7 +4,7 @@ import os
 import uuid
 
 import constants
-from data_manager.browser.py.browser_builder import get_browser_data
+from data_manager.browser_builder import get_browser_data
 from data_manager.json_extender import ExtendedJSONEncoder
 from data_manager.utils import read_data_path
 
