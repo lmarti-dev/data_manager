@@ -9,9 +9,7 @@ import __main__
 import matplotlib.pyplot as plt
 import numpy as np
 import data_manager.constants as constants
-from fau_colors import colors_dark
 from data_manager.json_extender import ExtendedJSONDecoder, ExtendedJSONEncoder
-from matplotlib import cycler
 import shutil
 from typing import Iterable
 
@@ -97,10 +95,6 @@ def normalize_str(s: str):
 
 def extended_dumps(jobj: dict) -> str:
     return json.dumps(jobj, indent=4, ensure_ascii=False, cls=ExtendedJSONEncoder)
-
-
-def set_color_cycler():
-    plt.rcParams["axes.prop_cycle"] = cycler(color=list(colors_dark))
 
 
 def home() -> str:

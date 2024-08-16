@@ -4,9 +4,10 @@ import os
 import re
 import uuid
 from datetime import datetime
-import shutil
 
 import data_manager.constants as constants
+
+# will change this to PyMuPDF, though they are keeping the legacy import alive
 import fitz
 from data_manager.json_extender import (
     ExtendedJSONDecoder,
