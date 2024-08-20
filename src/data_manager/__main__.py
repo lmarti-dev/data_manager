@@ -1,6 +1,13 @@
-from data_manager.utils import init_settings, read_data_path
-from data_manager.browser_builder import rebuild_browser
+import argparse
 import os
+import sys
+
+from data_manager.browser_builder import (
+    check_img_folder,
+    rebuild_browser,
+    refresh_browser,
+)
+from data_manager.utils import init_settings, read_data_path
 
 
 def init_data_folder():
@@ -36,4 +43,56 @@ def init_data_manager():
 
 
 if __name__ == "__main__":
-    init_data_manager()
+    parser = argparse.ArgumentParser()
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "-c",
+        "--check-img",
+        action="store_true",
+        help="Check if the image folder exists",
+    )
+    group.add_argument(
+        "-d",
+        "--delete-img",
+        action="store_true",
+        help="Delete all images in the image folder",
+    )
+    group.add_argument(
+        "-r",
+        "--rebuild-browser",
+        action="store_true",
+        help="Rebuild the browser data from scratch",
+    )
+    group.add_argument(
+        "-f",
+        "--refresh-browser",
+        action="store_true",
+        help="Remove all projects that have been deleted",
+    )
+    group.add_argument(
+        "-i",
+        "--init-man",
+        action="store_true",
+        help="Initialize data manager options",
+    )
+
+    args = parser.parse_args()
+
+    if not len(sys.argv) > 1:
+        args = parser.parse_args("--init-man")
+
+    if args.check_img:
+        print("Checking images")
+        check_img_folder(False, False)
+    elif args.delete_img:
+        print("Removing images")
+        check_img_folder(True, False)
+    elif args.rebuild_browser:
+        print("Rebuilding browser")
+        rebuild_browser(False)
+    elif args.refresh_browser:
+        print("Refreshing browser")
+        refresh_browser()
+    elif args.init_man:
+
+        init_data_manager()

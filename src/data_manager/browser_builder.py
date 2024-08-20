@@ -678,12 +678,3 @@ def refresh_browser():
             display_toremove.getparent().remove(display_toremove)
             print(f"Removed {browser_uuid} from browser")
     save_html(html)
-
-
-if __name__ == "__main__":
-    # print("Processing images")
-    # check_img_folder(True, True)
-    print("Rebuilding browser")
-    rebuild_browser(False)
-    # print("Refreshing browser")
-    # refresh_browser()
