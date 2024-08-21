@@ -8,10 +8,13 @@ import re
 import sys
 import uuid
 from datetime import datetime
+from typing import Literal
 
-import data_manager.constants as constants
 import matplotlib.pyplot as plt
 import numpy as np
+
+import __main__
+import data_manager.constants as constants
 from data_manager.browser_builder import add_to_browser
 from data_manager.json_extender import ExtendedJSONDecoder
 from data_manager.utils import (
@@ -24,8 +27,6 @@ from data_manager.utils import (
     read_data_path,
     timestamp_dict,
 )
-
-import __main__
 
 
 class ExperimentDataManager:
@@ -579,7 +580,9 @@ class ExperimentDataManager:
         add_timestamp: bool = True,
         save_data: str = "pickle",
         expand_figure: bool = True,
-        fig_shape: str = "regular",
+        fig_shape: Literal[
+            "regular", "half-y", "half-x", "half-size", "page-wide", "double-size"
+        ] = "regular",
     ):
         if not self.dry_run:
             if filename is None:
