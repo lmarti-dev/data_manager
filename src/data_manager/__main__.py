@@ -42,7 +42,7 @@ def init_data_manager():
     rebuild_browser()
 
 
-if __name__ == "__main__":
+def cli(fargs: str = None):
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
@@ -77,9 +77,10 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
-    if not len(sys.argv) > 1:
-        args = parser.parse_args("--init-man")
+    if fargs is not None:
+        args = parser.parse_args(fargs.split(" "))
+    elif not len(sys.argv) > 1:
+        args = parser.parse_args(["--init-man"])
 
     if args.check_img:
         print("Checking images")
@@ -96,3 +97,7 @@ if __name__ == "__main__":
     elif args.init_man:
 
         init_data_manager()
+
+
+if __name__ == "__main__":
+    cli()

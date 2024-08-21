@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-for project in ("testing", None, "fermionic cooling"):
+for project in ("moo", None, "moo2"):
     edm = ExperimentDataManager(
         experiment_name=f"browser_data_test_{project}",
         tags=[name_from_list("animals.txt") for a in range(10)],
