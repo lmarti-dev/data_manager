@@ -64,6 +64,12 @@ def cli(fargs: str = None):
         help="Rebuild the browser data from scratch",
     )
     group.add_argument(
+        "-e",
+        "--clear-browser",
+        action="store_true",
+        help="Clear the browser of all data",
+    )
+    group.add_argument(
         "-f",
         "--refresh-browser",
         action="store_true",
@@ -90,12 +96,14 @@ def cli(fargs: str = None):
         check_img_folder(True, False)
     elif args.rebuild_browser:
         print("Rebuilding browser")
+        rebuild_browser(True)
+    elif args.clear_browser:
+        print("Clearing browser")
         rebuild_browser(False)
     elif args.refresh_browser:
         print("Refreshing browser")
         refresh_browser()
     elif args.init_man:
-
         init_data_manager()
 
 
