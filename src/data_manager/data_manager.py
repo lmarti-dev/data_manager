@@ -122,6 +122,9 @@ class ExperimentDataManager:
                 self.new_run(notes=notes)
             else:
                 self.setup_logging(notes=notes)
+        else:
+            # so that you know it's not an actual run
+            self.run_number = -9999
 
         # create browser data for later ez browsing
         if not self.dry_run and self.save_logging_files:
@@ -330,10 +333,17 @@ class ExperimentDataManager:
         return json.load(io.open(fpath, mode="rb"), cls=ExtendedJSONDecoder)
 
     @property
-    def load_last_saved_data_file(self) -> str:
+    def last_saved_data_file(self):
         run_data_folder = os.path.join(self.current_saving_dirname, constants.DATA_DIR)
+        if not os.path.isdir(run_data_folder):
+            return ""
         filenames = os.listdir(run_data_folder)
         fpath = os.path.join(run_data_folder, max(filenames))
+        return fpath
+
+    @property
+    def load_last_saved_data_file(self) -> str:
+        fpath = self.last_saved_data_file
         jobj = json.loads(
             io.open(fpath, "r", encoding="utf8").read(),
             cls=ExtendedJSONDecoder,
