@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "data_manager"
-version = "0.55"
+version = "0.555"
 authors = [
   { name="Lucas Marti", email="lucas.marti@dxdt.ch" },
 ]
