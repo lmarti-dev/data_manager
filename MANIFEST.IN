@@ -1,3 +1,4 @@
 include LICENSE
 include src/data_manager/*.ini
 recursive-include src/data_manager/browser/ *
+recursive-include src/data_manager/wordlists/ *
