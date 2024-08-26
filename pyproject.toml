@@ -26,6 +26,8 @@ Issues = "https://github.com/lmarti-dev/data_manager/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
 "data_manager.wordlists" = ["*.txt"]
 "data_manager.browser.css" = ["*.css"]
 "data_manager.browser.fragments" = ["*.html"]
