@@ -479,7 +479,7 @@ def is_timestamp_newer(new: str, ref: str):
     return ts_new > ts_ref
 
 
-def add_to_browser(date, experiment, experiment_path):
+def add_to_browser(date, experiment_name, experiment_path):
     browser_data = get_browser_data(experiment_path=experiment_path)
     self_id = get_id_from_browser_data(browser_data, prefix=DISPLAY_ID_PREFIX)
     html, exp_scroll_list, display_container_div = get_scroll_list_and_display()
@@ -491,7 +491,11 @@ def add_to_browser(date, experiment, experiment_path):
         raise ValueError("Could not search in div, did you setup the html file?")
     if self_id not in experiments_id:
         append_scroll_and_display(
-            display_container_div, exp_scroll_list, date, experiment, experiment_path
+            display_container_div,
+            exp_scroll_list,
+            date,
+            experiment_name,
+            experiment_path,
         )
         save_html(html)
     else:
@@ -591,7 +595,7 @@ def save_html(out_html):
 
 
 def append_scroll_and_display(
-    display_container_div, exp_scroll_list, date, experiment, experiment_path
+    display_container_div, exp_scroll_list, date, experiment_name, experiment_path
 ):
     figs = build_n_figs_div(experiment_path, height="64px", width="64px", n_img=3)
     browser_data = get_browser_data(experiment_path=experiment_path)
@@ -603,7 +607,7 @@ def append_scroll_and_display(
     )
 
     scroll_item = create_bs_scroll_item(
-        experiment, pretty_manifest(manifest), date, figs, browser_data
+        experiment_name, pretty_manifest(manifest), date, figs, browser_data
     )
     exp_scroll_list.append(scroll_item)
 
@@ -643,6 +647,12 @@ def check_img_folder(refresh: bool = False, bypass_prompts: bool = False):
                     os.remove(fpath)
 
 
+def date_from_timestamp(timestamp: str):
+    s = datetime.strptime(timestamp, constants.DATETIME_FORMAT)
+    d = datetime.strftime(s, constants.DATE_FORMAT)
+    return d
+
+
 def build_uuid_dict():
     uuids = {}
     experiment_paths = get_all_experiment_paths()
@@ -653,12 +663,24 @@ def build_uuid_dict():
             "logging/manifest.json",
         )
         jobj = load_json(dirname)
-        uuids[jobj["uuid"]] = experiment_path
+        try:
+            date = date_from_timestamp(jobj["__timestamp"])
+        except KeyError:
+            # not dealing with my past mistakes.
+            # so I'm keeping them in the past
+            date = "2000_01_01"
+
+        jobj = load_json(dirname)
+
+        uuids[jobj["uuid"]] = {
+            "experiment_path": experiment_path,
+            "date": date,
+            "experiment_name": os.path.basename(experiment_path),
+        }
     return uuids
 
 
-def refresh_browser():
-    delete_experiments_without_data(read_data_path())
+def remove_deleted_experiments_from_browser():
     html = load_html()
     experiments_browser_uuids = [
         y.get("id").replace(SCROLL_ID_PREFIX + "_", "")
@@ -678,3 +700,27 @@ def refresh_browser():
             display_toremove.getparent().remove(display_toremove)
             print(f"Removed {browser_uuid} from browser")
     save_html(html)
+
+
+def add_missing_experiments_to_browser():
+    html = load_html()
+    experiments_browser_uuids = [
+        y.get("id").replace(SCROLL_ID_PREFIX + "_", "")
+        for y in html.findall(".//*[@id]")
+        if SCROLL_ID_PREFIX + "_" in y.get("id")
+    ]
+    uuid_dict = build_uuid_dict()
+    for data_uuid in uuid_dict.keys():
+        if data_uuid not in experiments_browser_uuids:
+            print(f"Adding {uuid_dict[data_uuid]['experiment_path']} to browser")
+            add_to_browser(
+                date=uuid_dict[data_uuid]["date"],
+                experiment_name=uuid_dict[data_uuid]["experiment_name"],
+                experiment_path=uuid_dict[data_uuid]["experiment_path"],
+            )
+
+
+def refresh_browser():
+    delete_experiments_without_data(read_data_path())
+    remove_deleted_experiments_from_browser()
+    add_missing_experiments_to_browser()
