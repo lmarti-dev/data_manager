@@ -1,8 +1,9 @@
-from json import JSONEncoder, JSONDecoder
+from json import JSONDecoder, JSONEncoder
+from typing import Any
+
 import cirq
 import numpy as np
 import openfermion as of
-from typing import Any
 import sympy
 
 CIRQ_TYPES = (
