@@ -20,7 +20,7 @@ for date in os.listdir(data_path):
             if constants.BROWSER_FOLDER not in os.listdir(
                 os.path.join(data_path, date, experiment_name)
             ):
-                edm = ExperimentDataManager.load_experiment_manager(
+                edm = ExperimentDataManager.load(
                     os.path.join(data_path, date, experiment_name)
                 )
                 edm.project = "fermionic cooling"

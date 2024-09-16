@@ -424,7 +424,7 @@ class ExperimentDataManager:
         )
 
     @classmethod
-    def load_experiment_manager(cls, experiment_dirname: str):
+    def load(cls, experiment_dirname: str):
         # This allows you to pick up where you stopped,
         # and eventually also save figures in the corresponding folder
         # so that your data and figures are in the same place

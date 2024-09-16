@@ -2,7 +2,7 @@ from data_manager.data_manager import ExperimentDataManager
 import os
 
 
-edm = ExperimentDataManager.load_experiment_manager(
+edm = ExperimentDataManager.load(
     experiment_dirname=os.path.dirname(__file__)
     + "/test_data_folder/2023_09_28/goldhaber_presinge_14h21",
 )
