@@ -423,6 +423,18 @@ class ExperimentDataManager:
             category=constants.LOGGING_DIR,
         )
 
+    def load_var_dump(self, run_number: int):
+        d = {}
+        dirname = self.logging_dir(run_number)
+        var_dumps = [f for f in os.listdir(dirname) if constants.VAR_DUMP in f]
+        for var_dump in var_dumps:
+            fpath = os.path.join(dirname, var_dump)
+            jobj = json.loads(
+                io.open(fpath, "r", encoding="utf8").read(), cls=ExtendedJSONDecoder
+            )
+            d.update(jobj)
+        return d
+
     @classmethod
     def load(cls, experiment_dirname: str):
         # This allows you to pick up where you stopped,
@@ -559,7 +571,7 @@ class ExperimentDataManager:
     def var_dump(
         self,
         large_array_threshold: int = -1,
-        filename: str = "var_dump",
+        filename: str = constants.VAR_DUMP,
         **kwargs,
     ):
         if not self.dry_run:
