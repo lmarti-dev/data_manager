@@ -268,13 +268,17 @@ class ExperimentDataManager:
         run_number = self.check_run_number(run_number)
         return os.path.join(self.saving_dirname(run_number), constants.DATA_DIR)
 
+    def logging_dir(self, run_number: int = -1):
+        run_number = self.check_run_number(run_number)
+        return os.path.join(self.saving_dirname(run_number), constants.LOGGING_DIR)
+
     @property
     def current_data_dir(self) -> str:
         return self.data_dir()
 
     @property
     def current_logging_dir(self) -> str:
-        return os.path.join(self.current_saving_dirname, constants.LOGGING_DIR)
+        return self.logging_dir()
 
     @property
     def current_fig_dir(self) -> str:
@@ -342,7 +346,7 @@ class ExperimentDataManager:
         return fpath
 
     @property
-    def load_last_saved_data_file(self) -> str:
+    def load_last_saved_data_file(self) -> dict:
         fpath = self.last_saved_data_file
         jobj = json.loads(
             io.open(fpath, "r", encoding="utf8").read(),
