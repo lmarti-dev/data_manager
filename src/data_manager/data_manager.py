@@ -423,7 +423,8 @@ class ExperimentDataManager:
             category=constants.LOGGING_DIR,
         )
 
-    def load_var_dump(self, run_number: int):
+    def load_var_dump(self, run_number: int = -1):
+        run_number = self.check_run_number(run_number)
         d = {}
         dirname = self.logging_dir(run_number)
         var_dumps = [f for f in os.listdir(dirname) if constants.VAR_DUMP in f]
