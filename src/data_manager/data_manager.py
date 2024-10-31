@@ -9,6 +9,8 @@ import sys
 import uuid
 from datetime import datetime
 from typing import Literal
+import inspect
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -205,9 +207,26 @@ class ExperimentDataManager:
         else:
             return run_number
 
+    def save_source(self):
+        source = inspect.getsource(__main__)
+        if not self.dry_run:
+            fpath = self.get_savepath(
+                dirname=None,
+                filename=Path(__file__).stem,
+                extension=".py",
+                subfolder=constants.LOGGING_DIR,
+                add_timestamp=False,
+                overwrite=False,
+            )
+            fstream = io.open(fpath, "w+")
+            fstream.write(source)
+            print("wrote source to {}".format(fpath))
+            fstream.close()
+
     def setup_logging(self, notes: str):
         if self.save_logging_files and not self.dry_run:
             self.save_manifest(notes=notes)
+            self.save_source()
             self.save_experiment_manager()
             if self.redirect_print_output:
                 self.redirect_print()
