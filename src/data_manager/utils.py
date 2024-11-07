@@ -288,7 +288,7 @@ def get_settings():
     return get_settings_file(filename=constants.SETTINGS_FILENAME)
 
 
-def get_project_list():
+def get_project_list() -> list:
     config = get_settings()
     project_list = config["projects"]["project_list"]
     # absolute mad stuff by json

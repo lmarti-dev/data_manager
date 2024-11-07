@@ -7,7 +7,7 @@ from data_manager.browser_builder import (
     rebuild_browser,
     refresh_browser,
 )
-from data_manager.utils import init_settings, read_data_path
+from data_manager.utils import init_settings, read_data_path, get_project_list
 
 
 def init_data_folder():
@@ -81,6 +81,12 @@ def cli(fargs: str = None):
         action="store_true",
         help="Initialize data manager options",
     )
+    group.add_argument(
+        "-p",
+        "--list-projects",
+        action="store_true",
+        help="check registered projects",
+    )
 
     args = parser.parse_args()
     if fargs is not None:
@@ -105,6 +111,8 @@ def cli(fargs: str = None):
         refresh_browser()
     elif args.init_man:
         init_data_manager()
+    elif args.list_projects:
+        print("\n".join(get_project_list()))
 
 
 if __name__ == "__main__":
