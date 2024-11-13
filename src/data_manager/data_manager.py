@@ -212,7 +212,7 @@ class ExperimentDataManager:
         if not self.dry_run:
             fpath = self.get_savepath(
                 dirname=None,
-                filename=Path(__file__).stem,
+                filename=Path(__main__.__file__).stem,
                 extension=".py",
                 subfolder=constants.LOGGING_DIR,
                 add_timestamp=False,
