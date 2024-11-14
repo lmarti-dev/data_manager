@@ -251,7 +251,11 @@ class ExperimentDataManager:
             logging.basicConfig(
                 format="%(message)s", level=logging.INFO, handlers=targets
             )
-            __main__.print = logging.info
+
+            def custom_print(*args, **kwargs):
+                logging.info(*args)
+
+            __main__.print = custom_print
             print(
                 "Redirect print of {} to {}".format(
                     __main__.__file__, print_output_fpath
