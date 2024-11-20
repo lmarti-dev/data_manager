@@ -218,7 +218,7 @@ class ExperimentDataManager:
                 add_timestamp=False,
                 overwrite=False,
             )
-            fstream = io.open(fpath, "w+")
+            fstream = io.open(fpath, "w+", encoding="utf-8")
             fstream.write(source)
             print("wrote source to {}".format(fpath))
             fstream.close()
