@@ -628,7 +628,7 @@ class ExperimentDataManager:
         fig: plt.Figure,
         filename: str = None,
         add_timestamp: bool = True,
-        save_data: str = "pickle",
+        save_data: str = None,
         expand_figure: bool = True,
         fig_shape: Literal[
             "regular",
@@ -649,7 +649,9 @@ class ExperimentDataManager:
                 subfolder=constants.FIG_DIR,
                 add_timestamp=add_timestamp,
             )
-            if save_data == "json":
+            if save_data is None:
+                pass
+            elif save_data == "json":
                 # WARNING! this method saves only a fraction of the plot data
                 # use pickle if possible
                 fig_data = get_figure_dict(fig=fig)
