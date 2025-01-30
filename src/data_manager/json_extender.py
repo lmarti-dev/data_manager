@@ -1,23 +1,41 @@
 from json import JSONDecoder, JSONEncoder
 from typing import Any
 
-import cirq
 import numpy as np
-import openfermion as of
-import sympy
 
-CIRQ_TYPES = (
-    cirq.Qid,
-    cirq.Gate,
-    cirq.Operation,
-    cirq.Moment,
-    cirq.AbstractCircuit,
-    cirq.PauliSum,
-    cirq.PauliString,
-)
+# don't need these libraries but they're useful for me.
+try:
+    import cirq
 
-OF_TYPES = (of.SymbolicOperator,)
+    CIRQ_TYPES = (
+        cirq.Qid,
+        cirq.Gate,
+        cirq.Operation,
+        cirq.Moment,
+        cirq.AbstractCircuit,
+        cirq.PauliSum,
+        cirq.PauliString,
+    )
+    CIRQ_IMPORTED = True
+except ImportError:
+    CIRQ_IMPORTED = False
 
+
+try:
+    import openfermion as of
+
+    OF_TYPES = (of.SymbolicOperator,)
+    OF_IMPORTED = True
+except ImportError:
+    OF_IMPORTED = False
+
+
+try:
+    import sympy
+
+    SYMPY_IMPORTED = True
+except ImportError:
+    SYMPY_IMPORTED = False
 
 TYPE_FLAG = "type"
 ARGS_FLAG = "args"
@@ -37,13 +55,15 @@ class ExtendedJSONEncoder(JSONEncoder):
                 ARGS_FLAG: obj.tolist(),
                 KWARGS_FLAG: {"dtype": str(obj.dtype)},
             }
-        elif isinstance(obj, CIRQ_TYPES):
+        elif CIRQ_IMPORTED and isinstance(obj, CIRQ_TYPES):
             return {
                 TYPE_FLAG: obj.__class__.__name__,
                 ARGS_FLAG: cirq.to_json(obj, indent=4),
             }
 
-        elif isinstance(obj, (OF_TYPES, sympy.Symbol)):
+        elif (OF_IMPORTED and isinstance(obj, OF_TYPES)) or (
+            SYMPY_IMPORTED and isinstance(obj, sympy.Symbol)
+        ):
             return {TYPE_FLAG: obj.__class__.__name__, ARGS_FLAG: str(obj)}
 
         elif isinstance(obj, np.longdouble):
@@ -72,6 +92,14 @@ class ExtendedJSONDecoder(JSONDecoder):
         return dct
 
 
+# A+ type hinting
+def try_get_attr(cls: np.__class__, obj: Any):
+    try:
+        return getattr(cls, obj)
+    except Exception:
+        pass
+
+
 def get_type(s: str) -> Any:
     try:
         # make it fail fast if needed
@@ -92,16 +120,15 @@ def get_type(s: str) -> Any:
     except Exception:
         pass
     # the attr is the class with desired constructor
-    try:
-        getattr(cirq, s)
-        return lambda x: cirq.read_json(json_text=x)
-    # TODO: figure out which errors would show up
-    except Exception:
-        pass
-    for cls in (of, sympy):
+    if CIRQ_IMPORTED:
         try:
-            return getattr(cls, s)
+            getattr(cirq, s)
+            return lambda x: cirq.read_json(json_text=x)
+        # TODO: figure out which errors would show up
         except Exception:
             pass
-
+    if SYMPY_IMPORTED:
+        try_get_attr(sympy, s)
+    if OF_IMPORTED:
+        try_get_attr(of, s)
     raise TypeError("{} is an unknown type".format(s))
