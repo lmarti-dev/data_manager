@@ -97,7 +97,7 @@ def try_get_attr(cls: np.__class__, obj: Any):
     try:
         return getattr(cls, obj)
     except Exception:
-        pass
+        return None
 
 
 def get_type(s: str) -> Any:
@@ -128,7 +128,11 @@ def get_type(s: str) -> Any:
         except Exception:
             pass
     if SYMPY_IMPORTED:
-        return try_get_attr(sympy, s)
+        x = try_get_attr(sympy, s)
+        if x is not None:
+            return x
     if OF_IMPORTED:
-        return try_get_attr(of, s)
+        x = try_get_attr(of, s)
+        if x is not None:
+            return x
     raise TypeError("{} is an unknown type".format(s))
