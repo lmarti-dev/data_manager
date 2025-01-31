@@ -128,7 +128,7 @@ def get_type(s: str) -> Any:
         except Exception:
             pass
     if SYMPY_IMPORTED:
-        try_get_attr(sympy, s)
+        return try_get_attr(sympy, s)
     if OF_IMPORTED:
-        try_get_attr(of, s)
+        return try_get_attr(of, s)
     raise TypeError("{} is an unknown type".format(s))
