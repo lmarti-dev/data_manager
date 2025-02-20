@@ -16,26 +16,35 @@ try:
         cirq.PauliSum,
         cirq.PauliString,
     )
-    CIRQ_IMPORTED = True
+    HAS_CIRQ = True
 except ImportError:
-    CIRQ_IMPORTED = False
+    HAS_CIRQ = False
 
 
 try:
     import openfermion as of
 
     OF_TYPES = (of.SymbolicOperator,)
-    OF_IMPORTED = True
+    HAS_OF = True
 except ImportError:
-    OF_IMPORTED = False
+    HAS_OF = False
 
 
 try:
     import sympy
 
-    SYMPY_IMPORTED = True
+    HAS_SYMPY = True
 except ImportError:
-    SYMPY_IMPORTED = False
+    HAS_SYMPY = False
+
+
+try:
+    import qiskit
+    from qiskit_ibm_runtime import RuntimeEncoder, RuntimeDecoder
+
+    HAS_QISKIT = True
+except ImportError:
+    HAS_QISKIT = False
 
 TYPE_FLAG = "type"
 ARGS_FLAG = "args"
@@ -55,14 +64,14 @@ class ExtendedJSONEncoder(JSONEncoder):
                 ARGS_FLAG: obj.tolist(),
                 KWARGS_FLAG: {"dtype": str(obj.dtype)},
             }
-        elif CIRQ_IMPORTED and isinstance(obj, CIRQ_TYPES):
+        elif HAS_CIRQ and isinstance(obj, CIRQ_TYPES):
             return {
                 TYPE_FLAG: obj.__class__.__name__,
                 ARGS_FLAG: cirq.to_json(obj, indent=4),
             }
 
-        elif (OF_IMPORTED and isinstance(obj, OF_TYPES)) or (
-            SYMPY_IMPORTED and isinstance(obj, sympy.Symbol)
+        elif (HAS_OF and isinstance(obj, OF_TYPES)) or (
+            HAS_SYMPY and isinstance(obj, sympy.Symbol)
         ):
             return {TYPE_FLAG: obj.__class__.__name__, ARGS_FLAG: str(obj)}
 
@@ -72,6 +81,12 @@ class ExtendedJSONEncoder(JSONEncoder):
                 TYPE_FLAG: "np.longdouble",
                 ARGS_FLAG: float(obj),
             }
+        elif HAS_QISKIT:
+            try:
+                return RuntimeEncoder().default(obj)
+            except Exception:
+                pass
+
         return super().default(obj)
 
 
@@ -89,6 +104,8 @@ class ExtendedJSONDecoder(JSONDecoder):
             if KWARGS_FLAG in dct:
                 kwargs.update(dct[KWARGS_FLAG])
             return t(*args, **kwargs)
+        elif HAS_QISKIT:
+            return RuntimeDecoder().object_hook(dct)
         return dct
 
 
@@ -120,18 +137,18 @@ def get_type(s: str) -> Any:
     except Exception:
         pass
     # the attr is the class with desired constructor
-    if CIRQ_IMPORTED:
+    if HAS_CIRQ:
         try:
             getattr(cirq, s)
             return lambda x: cirq.read_json(json_text=x)
         # TODO: figure out which errors would show up
         except Exception:
             pass
-    if SYMPY_IMPORTED:
+    if HAS_SYMPY:
         x = try_get_attr(sympy, s)
         if x is not None:
             return x
-    if OF_IMPORTED:
+    if HAS_OF:
         x = try_get_attr(of, s)
         if x is not None:
             return x
