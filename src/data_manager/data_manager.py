@@ -122,8 +122,6 @@ class ExperimentDataManager:
         if not dry_run:
             if self.use_runs and start_new_run:
                 self.new_run(notes=notes)
-            else:
-                self.setup_logging(notes=notes)
         else:
             # so that you know it's not an actual run
             self.run_number = -9999
@@ -361,7 +359,13 @@ class ExperimentDataManager:
 
     @property
     def last_saved_data_file(self):
-        run_data_folder = os.path.join(self.current_saving_dirname, constants.DATA_DIR)
+        return self.run_last_saved_data_file()
+
+    def run_last_saved_data_file(self, run_number: int = -1):
+        run_number = self.check_run_number(run_number)
+        run_data_folder = os.path.join(
+            self.saving_dirname(run_number), constants.DATA_DIR
+        )
         if not os.path.isdir(run_data_folder):
             return ""
         filenames = os.listdir(run_data_folder)
@@ -370,7 +374,10 @@ class ExperimentDataManager:
 
     @property
     def load_last_saved_data_file(self) -> dict:
-        fpath = self.last_saved_data_file
+        return self.load_run_last_saved_data_file()
+
+    def load_run_last_saved_data_file(self, run_number: int = -1) -> dict:
+        fpath = self.run_last_saved_data_file(run_number=run_number)
         jobj = json.loads(
             io.open(fpath, "r", encoding="utf8").read(),
             cls=ExtendedJSONDecoder,
