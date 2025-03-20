@@ -467,7 +467,7 @@ class ExperimentDataManager:
         return d
 
     @classmethod
-    def load(cls, experiment_dirname: str):
+    def load(cls, experiment_dirname: str, read_only: bool = True):
         # This allows you to pick up where you stopped,
         # and eventually also save figures in the corresponding folder
         # so that your data and figures are in the same place
@@ -504,6 +504,10 @@ class ExperimentDataManager:
         )
         edm.run_number = jobj["run_number"]
         print("Experiment restored: {}".format(edm.current_saving_dirname))
+        if read_only:
+            edm.save_dict = None
+            edm.save_figure = None
+            edm.var_dump = None
         return edm
 
     def get_savepath(
