@@ -2,6 +2,7 @@ from json import JSONDecoder, JSONEncoder
 from typing import Any
 
 import numpy as np
+from pathlib import Path
 
 # don't need these libraries but they're useful for me.
 try:
@@ -57,6 +58,11 @@ class ExtendedJSONEncoder(JSONEncoder):
             return {
                 TYPE_FLAG: "complex",
                 KWARGS_FLAG: {"real": obj.real, "imag": obj.imag},
+            }
+        elif isinstance(obj, Path):
+            return {
+                TYPE_FLAG: "path",
+                ARGS_FLAG: str(obj),
             }
         elif isinstance(obj, np.ndarray):
             return {
@@ -134,6 +140,11 @@ def get_type(s: str) -> Any:
         # hate this
         assert getattr(np, s).__name__ == "ndarray"
         return np.array
+    except Exception:
+        pass
+    try:
+        assert s == "path"
+        return Path
     except Exception:
         pass
     # the attr is the class with desired constructor
