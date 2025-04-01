@@ -134,6 +134,8 @@ def get_type(s: str) -> Any:
     try:
         # hate this
         assert getattr(np, s).__module__ == np.__name__
+        if s == "ndarray":
+            return np.array
         return getattr(np, s)
     except Exception:
         pass
