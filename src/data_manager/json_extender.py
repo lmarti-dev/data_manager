@@ -132,14 +132,9 @@ def get_type(s: str) -> Any:
     except Exception:
         pass
     try:
-        assert s == "float128"
-        return np.float128
-    except Exception:
-        pass
-    try:
         # hate this
-        assert getattr(np, s).__name__ == "ndarray"
-        return np.array
+        assert getattr(np, s).__module__ == np.__name__
+        return getattr(np, s)
     except Exception:
         pass
     try:
