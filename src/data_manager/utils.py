@@ -293,7 +293,9 @@ def get_project_list() -> list:
     project_list = config["projects"]["project_list"]
     # absolute mad stuff by json
     project_list = project_list.replace("'", '"')
-    return json.loads(project_list)
+    project_list_jobj: list = json.loads(project_list)
+    project_list_jobj.append(constants.OTHER_PROJECT)
+    return project_list_jobj
 
 
 def read_data_path():
