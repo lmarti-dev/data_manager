@@ -2,6 +2,7 @@ from json import JSONDecoder, JSONEncoder
 from typing import Any
 
 import numpy as np
+from pathlib import Path
 
 # don't need these libraries but they're useful for me.
 try:
@@ -42,9 +43,9 @@ try:
     import qiskit
     from qiskit_ibm_runtime import RuntimeEncoder, RuntimeDecoder
 
-    HAS_QISKIT = True
+    HAS_QISKIT_JSON = True
 except ImportError:
-    HAS_QISKIT = False
+    HAS_QISKIT_JSON = False
 
 TYPE_FLAG = "type"
 ARGS_FLAG = "args"
@@ -58,11 +59,27 @@ class ExtendedJSONEncoder(JSONEncoder):
                 TYPE_FLAG: "complex",
                 KWARGS_FLAG: {"real": obj.real, "imag": obj.imag},
             }
+        elif isinstance(obj, Path):
+            return {
+                TYPE_FLAG: "path",
+                ARGS_FLAG: str(obj),
+            }
         elif isinstance(obj, np.ndarray):
             return {
                 TYPE_FLAG: obj.__class__.__name__,
                 ARGS_FLAG: obj.tolist(),
                 KWARGS_FLAG: {"dtype": str(obj.dtype)},
+            }
+        elif obj.__class__.__module__ == np.__name__:
+            # longdouble.item() casts to longdouble. What's the point?
+            if type(obj.item()) is type(obj):
+                return {
+                    TYPE_FLAG: obj.__class__.__name__,
+                    ARGS_FLAG: obj.astype(float).item(),
+                }
+            return {
+                TYPE_FLAG: obj.__class__.__name__,
+                ARGS_FLAG: obj.tolist(),
             }
         elif HAS_CIRQ and isinstance(obj, CIRQ_TYPES):
             return {
@@ -75,13 +92,7 @@ class ExtendedJSONEncoder(JSONEncoder):
         ):
             return {TYPE_FLAG: obj.__class__.__name__, ARGS_FLAG: str(obj)}
 
-        elif isinstance(obj, np.longdouble):
-            # welp
-            return {
-                TYPE_FLAG: "np.longdouble",
-                ARGS_FLAG: float(obj),
-            }
-        elif HAS_QISKIT:
+        elif HAS_QISKIT_JSON:
             try:
                 return RuntimeEncoder().default(obj)
             except Exception:
@@ -105,7 +116,7 @@ class ExtendedJSONDecoder(JSONDecoder):
             if KWARGS_FLAG in dct:
                 kwargs.update(dct[KWARGS_FLAG])
             return t(*args, **kwargs)
-        elif HAS_QISKIT:
+        elif HAS_QISKIT_JSON:
             return RuntimeDecoder().object_hook(dct)
         return dct
 
@@ -127,17 +138,21 @@ def get_type(s: str) -> Any:
     except Exception:
         pass
     try:
-        assert s == "float128"
-        return np.float128
+        # hate this
+        assert getattr(np, s).__module__ == np.__name__
+        if s == "ndarray":
+            return np.array
+        return getattr(np, s)
     except Exception:
         pass
     try:
-        # hate this
-        assert getattr(np, s).__name__ == "ndarray"
-        return np.array
+        assert s == "path"
+        return Path
     except Exception:
         pass
     # the attr is the class with desired constructor
+    # would be nice to do a for loop without including the non-imported module
+    # names explicitly
     if HAS_CIRQ:
         try:
             getattr(cirq, s)
@@ -151,6 +166,10 @@ def get_type(s: str) -> Any:
             return x
     if HAS_OF:
         x = try_get_attr(of, s)
+        if x is not None:
+            return x
+    if HAS_QISKIT_JSON:
+        x = try_get_attr(qiskit, s)
         if x is not None:
             return x
     raise TypeError("{} is an unknown type".format(s))
