@@ -22,6 +22,15 @@ except ImportError:
     HAS_CIRQ = False
 
 
+# try:
+#     from uncertainties import unumpy, Variable
+
+#     UNC_TYPES = (unumpy.matrix, Variable)
+#     HAS_UNC = True
+# except ImportError:
+#     HAS_UNC = False
+
+
 try:
     import openfermion as of
 
