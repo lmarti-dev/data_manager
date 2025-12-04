@@ -106,7 +106,8 @@ class ExtendedJSONEncoder(JSONEncoder):
                 return RuntimeEncoder().default(obj)
             except Exception:
                 pass
-
+        elif "__to_json__" in obj.__class__.__dict__.keys():
+            return obj.__to_json__
         return super().default(obj)
 
 
