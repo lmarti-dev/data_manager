@@ -649,6 +649,7 @@ class ExperimentDataManager:
             "page-wide",
             "double-size",
             "double-y",
+            "nice-y",
         ] = "regular",
     ):
         if not self.dry_run:
@@ -704,6 +705,8 @@ class ExperimentDataManager:
                 figsize = (figsize[0], figsize[1] / 2)
             elif fig_shape == "double-y":
                 figsize = (figsize[0], figsize[1] * 2)
+            elif fig_shape == "nice-y":
+                figsize = (figsize[0], figsize[1] * 1.5)
             elif fig_shape == "half-x":
                 figsize = (figsize[0] / 2, figsize[1])
             elif fig_shape == "half-size":
