@@ -61,6 +61,9 @@ ARGS_FLAG = "args"
 KWARGS_FLAG = "kwargs"
 
 
+from datetime import datetime
+
+
 class ExtendedJSONEncoder(JSONEncoder):
     def default(self, obj: Any) -> dict:
         if isinstance(obj, complex):
@@ -79,6 +82,8 @@ class ExtendedJSONEncoder(JSONEncoder):
                 ARGS_FLAG: obj.tolist(),
                 KWARGS_FLAG: {"dtype": str(obj.dtype)},
             }
+        elif isinstance(obj, datetime):
+            return {TYPE_FLAG: "datetime", ARGS_FLAG: obj.isoformat()}
         elif obj.__class__.__module__ == np.__name__:
             # longdouble.item() casts to longdouble. What's the point?
             if type(obj.item()) is type(obj):
@@ -144,6 +149,11 @@ def get_type(s: str) -> Any:
         # somehow getattr(__builtins__, "complex") raises an error. why?
         assert s == "complex"
         return complex
+    except Exception:
+        pass
+    try:
+        assert s == "datetime"
+        return datetime.fromisoformat
     except Exception:
         pass
     try:
