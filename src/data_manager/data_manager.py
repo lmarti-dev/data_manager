@@ -510,6 +510,7 @@ class ExperimentDataManager:
             edm.var_dump = None
 
         edm.data_folder = Path(experiment_dirname).parent
+        edm.use_calendar = False
         return edm
 
     def get_savepath(
