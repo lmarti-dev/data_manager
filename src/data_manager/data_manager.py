@@ -508,6 +508,8 @@ class ExperimentDataManager:
             edm.save_dict = None
             edm.save_figure = None
             edm.var_dump = None
+
+        edm.data_folder = Path(experiment_dirname).parent
         return edm
 
     def get_savepath(
