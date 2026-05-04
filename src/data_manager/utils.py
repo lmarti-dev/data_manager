@@ -62,8 +62,10 @@ def get_most_recent_timestamped_files(files: list):
     return files[ind]
 
 
-def timestamp_dict(d: dict):
-    d[constants.TIMESTAMP_KEY] = datetime.today().strftime(constants.DATETIME_FORMAT)
+def timestamp_dict(d: dict) -> dict:
+    d2 = d.copy()
+    d2[constants.TIMESTAMP_KEY] = datetime.today().strftime(constants.DATETIME_FORMAT)
+    return d2
 
 
 def normalize_str(s: str):
@@ -126,7 +128,7 @@ def load_figure_data(figure_fpath: os.PathLike):
     else:
         axes_data = [jobj[key] for key in keys if "ax" in key]
     if "specs" in keys:
-        (nrows, ncols) = jobj["specs"]
+        nrows, ncols = jobj["specs"]
         fig, axes = plt.subplots(nrows=nrows, ncols=ncols)
     else:
         n_subplots = sum([1 if "ax" in key else 0 for key in keys])
@@ -267,7 +269,7 @@ def dirname_has_substring(dirname: str, substr: str, return_last: bool = True):
     items = [item for item in tentative_items if substr in item]
     if items:
         if return_last:
-            return items[-1]
+            return sorted(items)[-1]
         else:
             return items
     else:
