@@ -595,7 +595,7 @@ class ExperimentDataManager:
             # if list, turn into dict to timestamp
             if not isinstance(jobj, dict):
                 jobj = {"__content": jobj}
-            timestamp_dict(jobj)
+            jobj = timestamp_dict(jobj)
 
             print("saving object called {}".format(os.path.basename(fpath)))
 
