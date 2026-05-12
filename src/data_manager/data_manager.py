@@ -39,7 +39,7 @@ class ExperimentDataManager:
         data_folder: os.PathLike = None,
         file_default_name: str = None,
         overwrite_experiment: bool = False,
-        redirect_print_output: bool = True,
+        redirect_print_output: bool = False,
         notes: str = None,
         zero_padding_len: int = 5,
         experiment_date: str = None,
@@ -243,8 +243,9 @@ class ExperimentDataManager:
                 subfolder=constants.LOGGING_DIR,
                 add_timestamp=False,
             )
-            targets = logging.StreamHandler(sys.stdout), logging.FileHandler(
-                print_output_fpath
+            targets = (
+                logging.StreamHandler(sys.stdout),
+                logging.FileHandler(print_output_fpath),
             )
             logging.basicConfig(
                 format="%(message)s", level=logging.INFO, handlers=targets
@@ -641,7 +642,7 @@ class ExperimentDataManager:
         self,
         fig: plt.Figure,
         filename: str = None,
-        add_timestamp: bool = True,
+        add_timestamp: bool = False,
         save_data: str = None,
         expand_figure: bool = True,
         fig_shape: Literal[
