@@ -645,6 +645,7 @@ class ExperimentDataManager:
         add_timestamp: bool = False,
         save_data: str = None,
         expand_figure: bool = True,
+        michael_scaling: bool = False,
         fig_shape: Literal[
             "regular",
             "half-y",
@@ -696,7 +697,6 @@ class ExperimentDataManager:
                 bbox_inches = "tight"
 
             # a full figure fits snugly in a revtex column
-            michael_scaling = True
             subplot_row_scaling = True
             if michael_scaling:
                 figsize = (figsize[0], figsize[1] * 1.5)
